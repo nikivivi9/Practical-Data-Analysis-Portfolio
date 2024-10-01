@@ -8,9 +8,29 @@ output: pdf_document
 ```{r}
 library(tidyverse)
 library(ggplot2)
+library(visdat)
+library(gtsummary)
 
 data <- read.csv("project1.csv")
 course_record <- read.csv("course_record.csv")
 aqi_values <- read.csv("aqi_values.csv")
 marathon_dates <-  read.csv("marathon_dates.csv")
+
+colnames(data) <- c("race", "year", "sex", "flag", "age", "CR", "Tdc", "Twc", "rh", "Tgc", "SR Wm2", "DP", "Wind", "WBGT")
+
+data$flag <- case_when(data$flag == "" ~ NA, TRUE ~ data$flag)
+data$flag <- as.factor(data$flag)
+data$sex <- as.factor(data$sex)
+```
+
+```{r}
+# Missing Pattern
+vis_dat(data)
+  
+ggplot(data) +
+  geom_point(aes(x = age, y = CR, color = sex)) +
+  ggtitle("Change in Marathon Performance through Age by Gender") + 
+  theme_minimal()
+
+hist(data$CR)
 ```
