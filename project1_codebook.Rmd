@@ -16,6 +16,7 @@ library(visdat)
 library(gtsummary)
 library(kableExtra)
 library(ggpubr)
+library(gt)
 
 data <- read.csv("project1.csv")
 course_record <- read.csv("course_record.csv")
@@ -41,7 +42,27 @@ data <- data %>%
   left_join(course_record, join_by("sex" == "Gender", "race" == "Race", "year" == "Year"))
 
 data$sex <- as.factor(data$sex)
-data$race <- as.factor(data$race)
+data$race <- case_when(data$race == 0 ~ "Boston",
+                       data$race == 1 ~ "Chicago",
+                       data$race == 2 ~ "NYC",
+                       data$race == 3 ~ "Twin Cities",
+                       data$race == 4 ~ "Grandmas")
+
+data <- data %>% left_join(marathon_dates, by = c("race" = "marathon", "year" = "year"))
+
+aqi_values_sum <- aqi_values %>% 
+  group_by(marathon, date_local) %>%
+  summarize(ave_arithmetic_mean = mean(arithmetic_mean, na.rm = TRUE), .groups = "drop")
+
+data <- data %>%
+  mutate(date = as.Date(date)) 
+aqi_values_sum <- aqi_values_sum %>%
+  mutate(date_local = as.Date(date_local))
+
+# Joining with the main dataset
+data <- data %>%
+  left_join(aqi_values_sum, by = c("race" = "marathon", "date" = "date_local"))
+
 ```
 
 ```{r, out.width= "80%"}
@@ -55,6 +76,16 @@ data <- data %>%
                                   include.lowest = TRUE, 
                                   labels = c("Lower Age", "Lower-Mid Age", 
                                              "Upper-Mid Age", "Highest Age")))
+
+
+data <- data %>%
+  group_by(sex) %>%
+  mutate(age_group = cut(age, 
+                         breaks = c(0, 21, 31, 47, 62, Inf), 
+                         include.lowest = TRUE, 
+                         labels = c("Younger", "Lower Age", "Lower-Mid Age", 
+                                    "Upper-Mid Age", "Highest Age")))
+
 # Summary Table by Age group and Sex
 summary_table <- data %>%
   group_by(age_group, sex) %>%
@@ -122,7 +153,7 @@ ggarrange(ageplot_male, ageplot_female)
 ```
 
 ```{r}
-data$flag <- factor( data$flag, levels = c("White", "Green", "Yellow", "Red", "Black", NA))
+data$flag <- factor(data$flag, levels = c("White", "Green", "Yellow", "Red", "Black", NA))
 data$sex <- ifelse(data$sex == 0, "Female", "Male")
 ggplot(data, aes(x = sex, y = CR_pct, fill = flag)) +
   geom_boxplot() +
@@ -131,6 +162,100 @@ ggplot(data, aes(x = sex, y = CR_pct, fill = flag)) +
   labs(x = "Sex", y = "Marathon Performance (CR_pct)", fill = "Risk of Heat Illness") +
   theme(legend.position = "bottom")
 ```
+```{r}
+tbl_summary <- data %>%
+  select(-c("year", "CR", "age_group")) %>%
+  mutate(
+    race = case_when(race == 0 ~ "Boston Marathon",
+                     race == 1 ~ "Chicago Marathon",
+                     race == 2 ~ "New York City Marathon",
+                     race == 3 ~ "Twin Cities Marathon",
+                     race == 4 ~ "Grandma’s Marathon",
+                     TRUE ~ "Missing"),
+    flag = case_when(flag == 'White' ~ "WBGT < 10C",
+                     flag == 'Green' ~ "WBGT 10-18C",
+                     flag == 'Yellow' ~ "WBGT > 18-23C",
+                     flag == 'Red' ~ "WBGT > 23-28C",
+                     TRUE ~ "Missing")) %>%
+  tbl_summary(by = sex,
+              label = list(age ~ "Age",
+                           CR_pct ~ "Percent off current course record ",
+                           Tdc ~ "Dry bulb temperature",
+                           Twc ~ "Wet bulb temperature",
+                           rh ~ "Percent relative humidity",
+                           Tgc ~ "Black globe temperature",
+                           SRWm2 ~ "Solar radiation in Watts",
+                           DP ~ "Dew Point"),
+              statistic = all_continuous() ~ "{mean} ({sd})") %>%
+  modify_spanning_header(update =  all_stat_cols() ~  "**Gender**") %>%
+  modify_footnote(update = all_stat_cols() ~ "Mean (SD) for continuous; n (%) for categorical") %>%
+  bold_labels()
+
+# Converting to gt table
+tbl_summary %>%
+  as_gt() %>%
+  cols_align(align = "center", columns = everything()) %>%
+  tab_options(
+    table.width = pct(120), 
+    table.align = "center"
+  ) %>%
+  tab_header(
+    title = md("Table 1: Summary Statistics by Gender")
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(10)),
+    locations = cells_title(groups = "title")
+  )
+
+```
+
+```{r}
+tbl_summary <- data %>%
+  select(-c("year", "CR", "age_group")) %>%
+  mutate(
+    race = case_when(race == "Boston" ~ "Boston Marathon",
+                     race == "Chicago" ~ "Chicago Marathon",
+                     race == "NYC" ~ "New York City Marathon",
+                     race == "Twin Cities" ~ "Twin Cities Marathon",
+                     race == "Grandmas" ~ "Grandma’s Marathon",
+                     TRUE ~ "Missing"),
+    flag = case_when(flag == 'White' ~ "WBGT < 10C",
+                     flag == 'Green' ~ "WBGT 10-18C",
+                     flag == 'Yellow' ~ "WBGT > 18-23C",
+                     flag == 'Red' ~ "WBGT > 23-28C",
+                     TRUE ~ "Missing")) %>%
+  tbl_summary(by = race,
+              label = list(age ~ "Age",
+                           sex ~ "Gender",
+                           CR_pct ~ "Percent off current course record ",
+                           Tdc ~ "Dry bulb temperature",
+                           Twc ~ "Wet bulb temperature",
+                           rh ~ "Percent relative humidity",
+                           Tgc ~ "Black globe temperature",
+                           SRWm2 ~ "Solar radiation in Watts",
+                           DP ~ "Dew Point"),
+              statistic = all_continuous() ~ "{mean} ({sd})") %>%
+  modify_spanning_header(update =  all_stat_cols() ~  "**Race**") %>%
+  modify_footnote(update = all_stat_cols() ~ "Mean (SD) for continuous; n (%) for categorical") %>%
+  bold_labels()
+
+tbl_summary %>%
+  as_gt() %>%
+  cols_align(align = "center", columns = everything()) %>%
+  tab_options(
+    table.width = pct(120), 
+    table.align = "center"
+  ) %>%
+  tab_header(
+    title = md("Table 1: Summary Statistics by Race")
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(10)),
+    locations = cells_title(groups = "title")
+  )
+```
+
+
 ```{r}
 ggplot(data, aes(x = Tdc, y = CR_pct, color = sex)) +
   geom_point(alpha = 0.2, size = 0.8) +
@@ -156,6 +281,7 @@ ggplot(data, aes(x = Tgc, y = CR_pct, color = sex)) +
   theme_minimal() +
   labs(x = "Black Global Temperature (°C)", y = "Marathon Performance (CR_pct)", color = "Sex")
 ```
+
 ```{r}
 ggplot(data, aes(x = rh)) +
   geom_histogram(binwidth = 5, fill = "steelblue", color = "black") +
@@ -187,23 +313,40 @@ ggplot(high_humidity_df, aes(x = rh, y = CR_pct, color = sex)) +
   theme_minimal() +
   labs(x = "Relative Humidity(%)", y = "Marathon Performance (CR_pct)", color = "Sex")
 ```
+
 ```{r}
-model <- lm(CR_pct ~ Tdc + rh + Wind + SRWm2 + WBGT + age_group, data = data)
-
-# Generate the regression summary table without using add_p(), since p-values are included by default
-summary_table <- tbl_regression(model, 
-                                label = list(Tdc ~ "Temperature (Tdc)",
-                                             rh ~ "Relative Humidity (rh)",
-                                             Wind ~ "Wind Speed",
-                                             SRWm2 ~ "Solar Radiation",
-                                             WBGT ~ "Wet Bulb Globe Temperature",
-                                             age_group ~ "Age Group"),
-                                exponentiate = FALSE) %>%  # Don't exponentiate for linear models
-  modify_header(label ~ "**Variable**") %>%  # Modify the header for better formatting
-  modify_caption("**Effect of Weather Variables on Marathon Performance by Age Group**")  # Add caption
-
+by(data$age, data$sex, summary)
 ```
 
+```{r}
+female_wind <- data %>%
+  filter(sex == "Female") %>%
+  group_by(age_group, Wind) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE))
+
+female_wind_fig <- ggplot(female_wind, aes(x = Wind, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Female") + 
+  theme_minimal()
+
+male_wind <- data %>%
+  filter(sex == "Male") %>%
+  group_by(age_group, Wind) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE))
+
+male_wind_fig <- ggplot(male_wind, aes(x = Wind, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Male") +
+  theme_minimal()
+
+ggarrange(female_wind_fig, male_wind_fig, common.legend = TRUE)
+```
+
+```{r}
+
+```
 # Appendix
 
 ```{r ref.label = knitr::all_labels()}
