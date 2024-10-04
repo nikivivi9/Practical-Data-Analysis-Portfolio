@@ -70,12 +70,12 @@ data <- data %>%
 # vis_dat(data)
 
 # Classify each observation to age groups by gender's quantile value
-data <- data %>%
-  group_by(sex) %>%
-  mutate(age_group = cut(age, breaks = quantile(age, probs = seq(0, 1, 0.25), na.rm = TRUE),
-                                  include.lowest = TRUE, 
-                                  labels = c("Lower Age", "Lower-Mid Age", 
-                                             "Upper-Mid Age", "Highest Age")))
+# data <- data %>%
+#   group_by(sex, .groups = "drop") %>%
+#   mutate(age_group = cut(age, breaks = quantile(age, probs = seq(0, 1, 0.25), na.rm = TRUE),
+#                                   include.lowest = TRUE, 
+#                                   labels = c("Lower Age", "Lower-Mid Age", 
+#                                              "Upper-Mid Age", "Highest Age")))
 
 
 data <- data %>%
@@ -84,7 +84,8 @@ data <- data %>%
                          breaks = c(0, 21, 31, 47, 62, Inf), 
                          include.lowest = TRUE, 
                          labels = c("Younger", "Lower Age", "Lower-Mid Age", 
-                                    "Upper-Mid Age", "Highest Age")))
+                                    "Upper-Mid Age", "Highest Age"))) %>%
+  ungroup()
 
 # Summary Table by Age group and Sex
 summary_table <- data %>%
@@ -162,52 +163,6 @@ ggplot(data, aes(x = sex, y = CR_pct, fill = flag)) +
   labs(x = "Sex", y = "Marathon Performance (CR_pct)", fill = "Risk of Heat Illness") +
   theme(legend.position = "bottom")
 ```
-```{r}
-tbl_summary <- data %>%
-  select(-c("year", "CR", "age_group")) %>%
-  mutate(
-    race = case_when(race == 0 ~ "Boston Marathon",
-                     race == 1 ~ "Chicago Marathon",
-                     race == 2 ~ "New York City Marathon",
-                     race == 3 ~ "Twin Cities Marathon",
-                     race == 4 ~ "Grandma’s Marathon",
-                     TRUE ~ "Missing"),
-    flag = case_when(flag == 'White' ~ "WBGT < 10C",
-                     flag == 'Green' ~ "WBGT 10-18C",
-                     flag == 'Yellow' ~ "WBGT > 18-23C",
-                     flag == 'Red' ~ "WBGT > 23-28C",
-                     TRUE ~ "Missing")) %>%
-  tbl_summary(by = sex,
-              label = list(age ~ "Age",
-                           CR_pct ~ "Percent off current course record ",
-                           Tdc ~ "Dry bulb temperature",
-                           Twc ~ "Wet bulb temperature",
-                           rh ~ "Percent relative humidity",
-                           Tgc ~ "Black globe temperature",
-                           SRWm2 ~ "Solar radiation in Watts",
-                           DP ~ "Dew Point"),
-              statistic = all_continuous() ~ "{mean} ({sd})") %>%
-  modify_spanning_header(update =  all_stat_cols() ~  "**Gender**") %>%
-  modify_footnote(update = all_stat_cols() ~ "Mean (SD) for continuous; n (%) for categorical") %>%
-  bold_labels()
-
-# Converting to gt table
-tbl_summary %>%
-  as_gt() %>%
-  cols_align(align = "center", columns = everything()) %>%
-  tab_options(
-    table.width = pct(120), 
-    table.align = "center"
-  ) %>%
-  tab_header(
-    title = md("Table 1: Summary Statistics by Gender")
-  ) %>%
-  tab_style(
-    style = cell_text(size = px(10)),
-    locations = cells_title(groups = "title")
-  )
-
-```
 
 ```{r}
 tbl_summary <- data %>%
@@ -255,31 +210,293 @@ tbl_summary %>%
   )
 ```
 
+```{r}
+tbl_summary_female <- data %>%
+  filter(sex == "Female") %>%
+  select(-c(year, sex, CR, age_group, date)) %>%
+  mutate(
+    race = case_when(race == "Boston" ~ "Boston Marathon",
+                     race == "Chicago" ~ "Chicago Marathon",
+                     race == "NYC" ~ "New York City Marathon",
+                     race == "Twin Cities" ~ "Twin Cities Marathon",
+                     race == "Grandmas" ~ "Grandma’s Marathon",
+                     TRUE ~ "Missing"),
+    flag = case_when(flag == 'White' ~ "WBGT < 10C",
+                     flag == 'Green' ~ "WBGT 10-18C",
+                     flag == 'Yellow' ~ "WBGT > 18-23C",
+                     flag == 'Red' ~ "WBGT > 23-28C",
+                     TRUE ~ "Missing")) %>%
+  tbl_summary(by = race,
+              label = list(age ~ "Age",
+                           CR_pct ~ "Percent off current course record ",
+                           Tdc ~ "Dry bulb temperature",
+                           Twc ~ "Wet bulb temperature",
+                           rh ~ "Percent relative humidity",
+                           Tgc ~ "Black globe temperature",
+                           SRWm2 ~ "Solar radiation in Watts",
+                           DP ~ "Dew Point"),
+              statistic = all_continuous() ~ "{mean} ({sd})",
+              missing = "ifany",
+              missing_text = "Missing") %>%
+  modify_spanning_header(update =  all_stat_cols() ~  "**Race**") %>%
+  modify_footnote(update = all_stat_cols() ~ "Mean (SD) for continuous; n (%) for categorical") %>%
+  bold_labels()
+
+tbl_summary_female %>%
+  as_gt() %>%
+  cols_align(align = "center", columns = everything()) %>%
+  tab_options(
+    table.width = pct(120), 
+    table.align = "center"
+  ) %>%
+  tab_header(
+    title = md("Table 1: Summary Statistics by Race (Female)")
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(10)),
+    locations = cells_title(groups = "title")
+  )
+```
 
 ```{r}
-ggplot(data, aes(x = Tdc, y = CR_pct, color = sex)) +
-  geom_point(alpha = 0.2, size = 0.8) +
-  geom_smooth(method = "lm", se = FALSE, size = 0.8) +
-  facet_wrap(~ age_group, scales = "free") + 
-  ggtitle("Impact of Dry Bulb Temperature (Tdc) on Marathon Performance by Age Group and Sex") +
-  theme_minimal() +
-  labs(x = "Dry Bulb Temperature (°C)", y = "Marathon Performance (CR_pct)", color = "Sex")
+tbl_summary_male <- data %>%
+  filter(sex == "Male") %>%
+  select(-c(year, sex, CR, age_group, date)) %>%
+  mutate(
+    race = case_when(race == "Boston" ~ "Boston Marathon",
+                     race == "Chicago" ~ "Chicago Marathon",
+                     race == "NYC" ~ "New York City Marathon",
+                     race == "Twin Cities" ~ "Twin Cities Marathon",
+                     race == "Grandmas" ~ "Grandma’s Marathon",
+                     TRUE ~ "Missing"),
+    flag = case_when(flag == 'White' ~ "WBGT < 10C",
+                     flag == 'Green' ~ "WBGT 10-18C",
+                     flag == 'Yellow' ~ "WBGT > 18-23C",
+                     flag == 'Red' ~ "WBGT > 23-28C",
+                     TRUE ~ "Missing")) %>%
+  tbl_summary(by = race,
+              label = list(age ~ "Age",
+                           CR_pct ~ "Percent off current course record ",
+                           Tdc ~ "Dry bulb temperature",
+                           Twc ~ "Wet bulb temperature",
+                           rh ~ "Percent relative humidity",
+                           Tgc ~ "Black globe temperature",
+                           SRWm2 ~ "Solar radiation in Watts",
+                           DP ~ "Dew Point"),
+              statistic = all_continuous() ~ "{mean} ({sd})",
+              missing = "ifany",
+              missing_text = "Missing") %>%
+  modify_spanning_header(update =  all_stat_cols() ~  "**Race**") %>%
+  modify_footnote(update = all_stat_cols() ~ "Mean (SD) for continuous; n (%) for categorical") %>%
+  bold_labels()
 
-ggplot(data, aes(x = Twc, y = CR_pct, color = sex)) +
-  geom_point(alpha = 0.2, size = 0.8) +
-  geom_smooth(method = "lm", se = FALSE, size = 0.8) +
-  facet_wrap(~ age_group, scales = "free") + 
-  ggtitle("Impact of Wet Bulb Temperature (Twc) on Marathon Performance by Age Group and Sex") +
-  theme_minimal() +
-  labs(x = "Wet Bulb Temperature (°C)", y = "Marathon Performance (CR_pct)", color = "Sex")
+tbl_summary_male %>%
+  as_gt() %>%
+  cols_align(align = "center", columns = everything()) %>%
+  tab_options(
+    table.width = pct(120), 
+    table.align = "center"
+  ) %>%
+  tab_header(
+    title = md("Table 2: Summary Statistics by Race (Male)")
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(10)),
+    locations = cells_title(groups = "title")
+  )
+```
+```{r}
+female_Tdc <- data %>%
+  filter(sex == "Female") %>%
+  group_by(age_group, Tdc) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE))
 
-ggplot(data, aes(x = Tgc, y = CR_pct, color = sex)) +
-  geom_point(alpha = 0.2, size = 0.8) +
-  geom_smooth(method = "lm", se = FALSE, size = 0.8) +
-  facet_wrap(~ age_group, scales = "free") + 
-  ggtitle("Impact of Black Global Temperature (Tgc) on Marathon Performance by Age Group and Sex") +
-  theme_minimal() +
-  labs(x = "Black Global Temperature (°C)", y = "Marathon Performance (CR_pct)", color = "Sex")
+female_Tdc_fig <- ggplot(female_Tdc, aes(x = Tdc, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Female") + 
+  theme_minimal()
+
+male_Tdc <- data %>%
+  filter(sex == "Male") %>%
+  group_by(age_group, Tdc) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE))
+
+male_Tdc_fig <- ggplot(male_Tdc, aes(x = Tdc, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Male") +
+  theme_minimal()
+
+ggarrange(female_Tdc_fig, male_Tdc_fig, common.legend = TRUE)
+```
+```{r}
+female_Twc <- data %>%
+  filter(sex == "Female") %>%
+  group_by(age_group, Twc) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE))
+
+female_Twc_fig <- ggplot(female_Twc, aes(x = Twc, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Female") + 
+  theme_minimal()
+
+male_Twc <- data %>%
+  filter(sex == "Male") %>%
+  group_by(age_group, Twc) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE))
+
+male_Twc_fig <- ggplot(male_Twc, aes(x = Twc, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Male") +
+  theme_minimal()
+
+ggarrange(female_Twc_fig, male_Twc_fig, common.legend = TRUE)
+```
+
+```{r}
+female_Tgc <- data %>%
+  filter(sex == "Female") %>%
+  group_by(age_group, Tgc) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+female_Tgc_fig <- ggplot(female_Tgc, aes(x = Tgc, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Female") + 
+  theme_minimal()
+
+male_Tgc <- data %>%
+  filter(sex == "Male") %>%
+  group_by(age_group, Tgc) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+male_Tgc_fig <- ggplot(male_Tgc, aes(x = Tgc, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Male") +
+  theme_minimal()
+
+ggarrange(female_Tgc_fig, male_Tgc_fig, common.legend = TRUE)
+```
+
+```{r}
+low_humidity_df <- data %>%
+  filter(rh < 5)
+
+high_humidity_df <- data %>%
+  filter(rh > 5)
+
+female_low_rh <- low_humidity_df %>%
+  filter(sex == "Female") %>%
+  group_by(age_group, rh) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+female_low_rh_fig <- ggplot(female_low_rh, aes(x = rh, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Female (Low Humidity)") + 
+  theme_minimal()
+
+male_low_rh <- low_humidity_df %>%
+  filter(sex == "Male") %>%
+  group_by(age_group, rh) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+male_low_rh_fig <- ggplot(male_low_rh, aes(x = rh, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Male (Low Humidity)") +
+  theme_minimal()
+
+female_high_rh <- high_humidity_df %>%
+  filter(sex == "Female") %>%
+  group_by(age_group, rh) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+female_high_rh_fig <- ggplot(female_high_rh, aes(x = rh, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Female (High Humidity)") + 
+  theme_minimal()
+
+male_high_rh <- high_humidity_df %>%
+  filter(sex == "Male") %>%
+  group_by(age_group, rh) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+male_high_rh_fig <- ggplot(male_high_rh, aes(x = rh, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Male (High Humidity)") +
+  theme_minimal()
+
+ggarrange(female_low_rh_fig, male_low_rh_fig, female_high_rh_fig, male_high_rh_fig, common.legend = TRUE)
+```
+
+```{r}
+female_SRWm2 <- data %>%
+  filter(sex == "Female") %>%
+  group_by(age_group, SRWm2) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+female_SRWm2_fig <- ggplot(female_SRWm2, aes(x = SRWm2, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Female") + 
+  theme_minimal()
+
+male_SRWm2 <- data %>%
+  filter(sex == "Male") %>%
+  group_by(age_group, SRWm2) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+male_SRWm2_fig <- ggplot(male_SRWm2, aes(x = SRWm2, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Male") +
+  theme_minimal()
+
+ggarrange(female_SRWm2_fig, male_SRWm2_fig, common.legend = TRUE)
+```
+
+
+```{r}
+female_WBGT <- data %>%
+  filter(sex == "Female") %>%
+  group_by(age_group, WBGT) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+female_WBGT_fig <- ggplot(female_WBGT, aes(x = WBGT, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Female") + 
+  theme_minimal()
+
+male_WBGT <- data %>%
+  filter(sex == "Male") %>%
+  group_by(age_group, WBGT) %>%
+  mutate(mean_CR_pct = mean(CR_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+male_WBGT_fig <- ggplot(male_WBGT, aes(x = WBGT, y = mean_CR_pct, color = age_group)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8) + 
+  ggtitle("Male") +
+  theme_minimal()
+
+ggarrange(female_WBGT_fig, male_WBGT_fig, common.legend = TRUE)
 ```
 
 ```{r}
@@ -295,23 +512,6 @@ low_humidity_df <- data %>%
 high_humidity_df <- data %>%
   filter(rh > 5)
 
-summary(low_humidity_df)
-
-ggplot(low_humidity_df, aes(x = rh, y = CR_pct, color = sex)) +
-  geom_point(alpha = 0.2, size = 0.8) +
-  geom_smooth(method = "lm", se = FALSE, size = 0.8) +
-  facet_wrap(~ age_group, scales = "free") + 
-  ggtitle("Impact of Relative Humidity on Marathon Performance by Age Group and Sex") +
-  theme_minimal() +
-  labs(x = "Relative Humidity(%)", y = "Marathon Performance (CR_pct)", color = "Sex")
-
-ggplot(high_humidity_df, aes(x = rh, y = CR_pct, color = sex)) +
-  geom_point(alpha = 0.2, size = 0.8) +
-  geom_smooth(method = "lm", se = FALSE, size = 0.8) +
-  facet_wrap(~ age_group, scales = "free") + 
-  ggtitle("Impact of Relative Humidity on Marathon Performance by Age Group and Sex") +
-  theme_minimal() +
-  labs(x = "Relative Humidity(%)", y = "Marathon Performance (CR_pct)", color = "Sex")
 ```
 
 ```{r}
