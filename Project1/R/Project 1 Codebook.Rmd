@@ -24,7 +24,7 @@ library(corrplot)
 
 ```{r}
 # set working directory
-setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Practical-Data-Analysis-Portfolio/Project1/Data")
+setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/Project 1 Data/")
 
 # read in data
 data <- read.csv("project1.csv")
