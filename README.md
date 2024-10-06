@@ -9,20 +9,9 @@ This project a collaboration with Dr. Brett Romano Ely and Dr. Matthew Ely from 
 The performance outcome is measured as the percentage deviation from the course record (%CR), and the analysis is stratified by age and gender. The project also incorporates a new classification of age groups to better reflect the distribution of marathon participants. Through exploratory data analysis and statistical modeling, the project explores how environmental conditions impact performance differently across age groups and genders, with a particular focus on understanding the sensitivity of younger and older runners to these conditions.
 
 ### Files
-
-- Folder `Data`:
-    - `aqi_values.csv`: Air quality dataset
-    - `course_record.csv`: Best course record by gender and race dataset
-    - `marathon_dates.csv`: Marathon dates dataset
-    - `Project1.csv`: The main dataset, including environmental condition and participants characteristics
-
 - Folder `R`:
      - `Project 1 codebook.rmd`: The Rmarkdown file of this Exploratory Data Analysis report, containing codes and analysis text.
      - `Project 1 codebook.pdf`: The pdf file of this Exploratory Data Analysis report, including the analysis text, code results, and appendix.
-
-- Folder `Supplemental Material`:
-    - `Marathon Data Codesheet.docx`: A document detailing the coding information for the main dataset.
-     - `aqi.R`: A script for processing the air quality index dataset.
  
 
 ### Dependencies
