@@ -16,7 +16,7 @@ This report is a collaboration with Dr. Brett Romano Ely and Dr. Matthew Ely fro
 Through exploratory data analysis and statistical modeling, we concludes that age plays a significant role in runner’s performance. Highest, Upper-mid, and younger, aged runners perform worse, especially for senior in the highest age group. Moreover, male runners show more sensitivity to age change compared to female runners, with a steeper decline in
 performance as age increases. Environmental conditions like Wet Bulb Global Temperature (WBGT), relative humidity (rh), and solar radiation (SRWm2) show statistically significant effect on people’s performance where WBGT has the largest impact with smaller p-value and larger coefficient estimates. Wind speed (Wind) and air quality (aqi) do not significantly affect runner’s performance. Despite the significance of these factors, people in the highest, upper-mid, and younger age group consistently show more fluctuations as environment changes compared to people in the lower-mid and mid age group. In addition, female runners exhibit more stable performance compared to male runners within the same aging group.
 
-![](Project 1/image/results.png)
+![](Project1/image/results.png)
 
 ### Files
 - Folder `R`:
