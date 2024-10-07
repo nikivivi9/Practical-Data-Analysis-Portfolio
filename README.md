@@ -32,4 +32,5 @@ The following R version and packages are used in this analysis. Ensure that they
     - lme4 - 1.1-35.1
     - lmerTest - 3.1-3
     - corrplot - 0.92
+    - broom.mixed_0.2.9.5
 
