@@ -358,8 +358,6 @@ title("Figure 3: Correlation Plot among Environmental Condition Characteristics"
 
 As mentioned previously, `WBGT` is calculated using all temperature variables and it is highly correlated with those variables. The strong correlation between `WBGT` and these variables suggests that `WBGT` alone can be a sufficient indicator of how temperature characteristics influence marathon outcomes.  Higher `WBGT` values indicate higher risks of heat stress illness. Figure 4 presents an illustration of how `WBGT` effects marathon performance across different age groups and genders, using `geom_smooth` to show the performance trend.
 
-Runners in higher, upper-mid, and Younger age groups are more susceptible to the effects of increasing `WBGT` that their performance fluctuates more as `WBGT` increases. Additionally, as `WBGT` increases, runners' performance generally worsens across all groups (%CR increase). Runners gradually perform better as `WBGT` value increase from $0^{\circ}C$ to $10^{\circ}C$, but their performance then declines when `WBGT` exceeds $10^{\circ}C$. For older runners in the highest age group, this decline is more significant, leading to largest deviation from the course record. Additionally, male runners consistently perform better compared to female runners within the same age group as we mentioned earlier. Male runners in the younger, upper-mid, and highest age group show steeper decline in performance when `WBGT` is larger than $10^{\circ}C$ compared to female younger runners. Although male runners perform better generally, they are more sensitive to higher `WBGT` levels in specific age groups. 
-
 ```{r, out.width = "80%", fig.align = "center"}
 # using geom_smooth to plot runners' performance vs. WBGT by gender and age groups
 fig_WBGT <- ggplot(data, aes(x = WBGT, y = CR_pct, color = age_group, linetype = sex)) +
@@ -378,6 +376,7 @@ fig_WBGT <- ggplot(data, aes(x = WBGT, y = CR_pct, color = age_group, linetype =
 
 fig_WBGT
 ```
+Runners in higher, upper-mid, and Younger age groups are more susceptible to the effects of increasing `WBGT` that their performance fluctuates more as `WBGT` increases. Additionally, as `WBGT` increases, runners' performance generally worsens across all groups (%CR increase). Runners gradually perform better as `WBGT` value increase from $0^{\circ}C$ to $10^{\circ}C$, but their performance then declines when `WBGT` exceeds $10^{\circ}C$. For older runners in the highest age group, this decline is more significant, leading to largest deviation from the course record. Additionally, male runners consistently perform better compared to female runners within the same age group as we mentioned earlier. Male runners in the younger, upper-mid, and highest age group show steeper decline in performance when `WBGT` is larger than $10^{\circ}C$ compared to female younger runners. Although male runners perform better generally, they are more sensitive to higher `WBGT` levels in specific age groups. 
 
 Figure 5 and Figure 6 presents the relationship between other environmental condition characteristics and runners' performance across different genders and age groups. 
 
@@ -386,7 +385,6 @@ Starting from Solar radiation (`SRWm2`), runners in the lower-mid and mid age gr
 People in the younger, upper-mid, and highest age groups still show more fluctuated trend in relative Humidity (`rh`) as well. For most age groups, people show stable performance as relative humidity increase from 0% to around 60%. This indicates that moderate humid conditions would not negatively influence runner's performance. However, as humidity rises excess this range, runners start to have worse performance. Moreover, male runners across different age groups are much more sensitive to the humidity change compared to female runners. 
 
 Wind speed (`Wind`) does not exhibit significant trend on runners' performance across various age groups and genders. For most age groups, %CR shows only minor changes as wind speed increases, suggesting that wind speeds do not have significant impact on runners' performance that runners are able to adjust under various wind conditions and maintain their great performance. Male runners in the highest age group show relatively greater fluctuation since older runners would be more sensitive to environmental condition change. Moreover, again, female runners present more stability in performance as wind speed varies as well. 
-
 
 ```{r, out.width = "80%", fig.align = "center"}
 # using geom_smooth to plot runners' performance vs. SRWm2 by gender and age groups
@@ -453,7 +451,10 @@ plot_mix1 <- ggarrange(fig_SRWm2, fig_rh,
 annotate_figure(plot_mix1, 
                 top = text_grob("Figure 5. Runners' Performance vs. Other Environmental Condition Factors (1)", 
                                 size = 12, hjust = 0.5))
+```
+Finally, runners show consistent performance as air quality index increases, except for the highest age group which experienced relatively more pronounced variation for both genders. In addition, male runners are more sensitive to air quality change compared to female runners within the same age group.
 
+```{r, out.width = "80%", fig.align = "center"}
 # merge the plots
 plot_mix2 <- ggarrange(fig_wind, fig_aqi, 
                        ncol = 2, common.legend = TRUE, legend = "bottom")
@@ -464,13 +465,9 @@ annotate_figure(plot_mix2,
                                 size = 12, hjust = 0.5))
 ```
 
-Finally, runners show consistent performance as air quality index increases, except for the highest age group which experienced relatively more pronounced variation for both genders. In addition, male runners are more sensitive to air quality change compared to female runners within the same age group.
-
 Thus, environmental condition characteristics like `WBGT`, solar radiation, and relative humidity do affect runner's performance. Older runners (upper-mid and highest age group) and younger runner (younger age group) are generally more sensitive to the environmental change. Females usually maintain higher stability through those environmental variations. Although wind speed and air quality do not present a pronounced effect on runners' performance, older runners still exhibits more sensitivity to these factors, while female runners continue to maintain more consistent performance compared to male runners.
 
 # Modeling
-
-To investigate the significance of environmental condition characteristics on marathon performance, we first generated a correlation plot with all environmental condition characteristics and our response variable `CR_pct` shown in Figure 7. Observing the correlation plot, none of the factors exhibits strong correlation with runner's performance.
 
 ```{r, out.width = "80%", fig.align='center'}
 # create a correlation matrix among environmental condition factors
@@ -484,16 +481,14 @@ mtext("Figure 7: Correlation Plot among Environmental Condition Characteristics 
       side = 1, cex.main = 0.9, line = 4) 
 ```
 
+
+To investigate the significance of environmental condition characteristics on marathon performance, we first generated a correlation plot with all environmental condition characteristics and our response variable `CR_pct` shown in Figure 7. Observing the correlation plot, none of the factors exhibits strong correlation with runner's performance.
+
 For further exploration, we fit a mixed-effects model with random intercept by age to present quantitative measures of significance. This approach helps us to account the various level of performance across different age groups we mentioned earlier. That is, younger, upper-mid, and highest age group runners tend to have worse performance and lower-mid and mid age group people are more likely to have greater performance. By using mixed-effects model with random intercept on age, we can capture the variation in runners' baseline performance variation among individuals across various age groups.
 
 $$
 \text{CR\_pct}_{ij} = \beta_0 + \beta_1 \cdot \text{rh}_i + \beta_2 \cdot \text{SRWm2}_i + \beta_3 \cdot \text{Wind}_i + \beta_4 \cdot \text{WBGT}_i + \beta_5 \cdot \text{aqi}_i + u_j + \epsilon_{ij}
 $$
-
-
-The mixed-effects model results are presented in Table 5 and Table 6. Among our environmental condition variables, `rh`, `SRWm2`, and `WBGT` exhibited statistical significance in our model with p-value less than 0.05 while `Wind` and `aqi` were not statistically significant with p-value larger than 0.05. WBGT had the largest and most significant effect on marathon performance compared to other factors, with an estimate of 0.5326 where p < 2e-16. This indicates that adjusting for other covariates, as WBGT increases by one unit, the %CR would increases by around 0.53% on average, leading to worse performance. 
-
-Although `rh` and `SRWm2` showed significance, their coefficients were extremely small. To be noticed, the coefficient estimates of both two variables had negative estimates, indicating a weakly negative effect of solar radiation and relative humidity on runner's performance. This result may initially seems counterintuitive that we would expect higher values of these two factors might be more challenge for runners to complete the race. However, remind what we discuss in the environmental condition section, moderate levels of these variables may not be as harmful as expected. Also, environmental factors do interact with each other in reality. Although the two variables appears minor and negative effect on themselves, they might have more complex effects in shaping overall race conditions. 
 
 ```{r}
 # fit a mixed-effects model with random intercept of age
@@ -520,6 +515,9 @@ fixed[, -c(1, 6)] %>%
   kable_styling(font_size = 10,
                 latex_options = c("repeat_header", "HOLD_position", "scale_down"))
 ```
+The mixed-effects model results are presented in Table 5 and Table 6. Among our environmental condition variables, `rh`, `SRWm2`, and `WBGT` exhibited statistical significance in our model with p-value less than 0.05 while `Wind` and `aqi` were not statistically significant with p-value larger than 0.05. WBGT had the largest and most significant effect on marathon performance compared to other factors, with an estimate of 0.5326 where p < 2e-16. This indicates that adjusting for other covariates, as WBGT increases by one unit, the %CR would increases by around 0.53% on average, leading to worse performance. 
+
+Although `rh` and `SRWm2` showed significance, their coefficients were extremely small. To be noticed, the coefficient estimates of both two variables had negative estimates, indicating a weakly negative effect of solar radiation and relative humidity on runner's performance. This result may initially seems counterintuitive that we would expect higher values of these two factors might be more challenge for runners to complete the race. However, remind what we discuss in the environmental condition section, moderate levels of these variables may not be as harmful as expected. Also, environmental factors do interact with each other in reality. Although the two variables appears minor and negative effect on themselves, they might have more complex effects in shaping overall race conditions. 
 
 # Discussion
 
