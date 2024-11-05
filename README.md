@@ -19,7 +19,7 @@ performance as age increases. Environmental conditions like Wet Bulb Global Temp
 ![](Project1/image/results.png)
 
 ### Files
-- Folder `R`:
+- Folder `Report`:
      - `Project 1 codebook.rmd`: The Rmarkdown file of this Exploratory Data Analysis report, containing codes and analysis text.
      - `Project 1 codebook.pdf`: The pdf file of this Exploratory Data Analysis report, including the analysis text, code results, and appendix.
  
