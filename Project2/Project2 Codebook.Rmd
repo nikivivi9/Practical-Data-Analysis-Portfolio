@@ -1,0 +1,231 @@
+---
+title: "Project 2 Codebook"
+author: "Yingxi Kong"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+# load necessary packages
+library(tidyverse)
+library(mice)
+library(gt)
+library(gtsummary)
+library(kableExtra)
+library(RColorBrewer)
+library(scico)
+```
+
+```{r}
+# set working directory
+setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
+
+# read in data
+data <- read.csv("project2.csv")
+
+data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
+         "Black", "Hisp", "inc", "edu", "ftcd.5.mins", 
+         "otherdiag", "antidepmed", "mde_curr", 
+         "Only.Menthol")] <- lapply(data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
+                                             "Black", "Hisp", "inc", "edu", 
+                                             "ftcd.5.mins", "otherdiag", "antidepmed", 
+                                             "mde_curr", "Only.Menthol")], as.factor)
+```
+
+```{r}
+# multiple imputation with m = 5
+imputed_data <- mice(data, m = 5, method = 'pmm', maxit = 50, seed = 2550, printFlag = FALSE)
+
+# extract the five imputed datasets
+completed_datasets <- list()
+for (i in 1:5) {
+  completed_datasets[[i]] <- complete(imputed_data, i)
+}
+
+# calculate average/mode of each missing variable
+averaged_data <- completed_datasets[[1]]
+
+for (var in names(averaged_data)) {
+  if (any(is.na(data[[var]]))) {
+    if (is.numeric(averaged_data[[var]])) {
+      averaged_data[[var]] <- rowMeans(sapply(completed_datasets, function(x) x[[var]]))
+    } else {
+      averaged_data[[var]] <- apply(sapply(completed_datasets, function(x) x[[var]]), 1, function(vals) {
+        vals <- as.factor(vals)
+        unique_vals <- unique(vals)
+        unique_vals[which.max(tabulate(match(vals, unique_vals)))]
+      })
+    }
+  }
+}
+```
+
+```{r}
+# Recode factor levels in the dataset
+averaged_data_factor <- averaged_data %>%
+  mutate(abst = fct_recode(as.factor(abst), "Yes" = "1", "No" = "0"),
+         inc = fct_recode(as.factor(inc), 
+                          "Less than $20,000" = "1", 
+                          "$20,000-35,000" = "2", 
+                          "$35,001-50,000" = "3", 
+                          "$50,001-75,000" = "4", 
+                          "More than $75,000" = "5"),
+         sex_ps = fct_recode(as.factor(sex_ps), "Male" = "1", "Female" = "2"),
+         edu = fct_recode(as.factor(edu), 
+                          "Grade School" = "1", 
+                          "Some high school" = "2", 
+                          "High school graduate or GED" = "3", 
+                          "Some college/technical school" = "4", 
+                          "College graduate" = "5"),
+         ftcd.5.mins = fct_recode(as.factor(ftcd.5.mins), "Yes" = "1", "No" = "0"),
+         otherdiag = fct_recode(as.factor(otherdiag), "Yes" = "1", "No" = "0"),
+         antidepmed = fct_recode(as.factor(antidepmed), "Yes" = "1", "No" = "0"),
+         mde_curr = fct_recode(as.factor(mde_curr), "Current MDD" = "1", "Past MDD" = "0"),
+         Only.Menthol = fct_recode(as.factor(Only.Menthol), "Yes" = "1", "No" = "0"),
+         race = case_when(Black == 1 ~ "Black",
+                          Hisp == 1 ~ "Hispanic",
+                          NHW == 1 ~ "Non-Hispanic White",
+                          TRUE ~ "Other"),
+         trt = case_when(Var == 1 & BA == 1 ~ "BASC + varenicline",
+                         Var == 0 & BA == 1 ~ "BASC + placebo",
+                         Var == 1 & BA == 0 ~ "ST + varenicline",
+                         Var == 0 & BA == 0 ~ "ST + placebo",
+                         TRUE ~ NA_character_))
+
+averaged_data_factor <- averaged_data_factor %>%
+  mutate(inc = fct_relevel(inc, "Less than $20,000", "$20,000-35,000", 
+                           "$35,001-50,000", "$50,001-75,000", "More than $75,000"),
+         edu = fct_relevel(edu, "Grade School", "Some high school", "High school graduate or GED",
+                           "Some college/technical school", "College graduate"))
+
+# Now create the summary table
+summary_table <- averaged_data_factor %>%
+  select(-c("id", "Var", "BA", "Black", "Hisp", "NHW")) %>%
+  tbl_summary(by = trt, label = list(abst ~ "Smoking abstinence",
+                                     race ~ "Race",
+                                     age_ps ~ "Age",
+                                     sex_ps ~ "Sex",
+                                     inc ~ "Income",
+                                     edu ~ "Education",
+                                     ftcd_score ~ "FTCD score",
+                                     ftcd.5.mins ~ "Smoking within 5 mins of waking up",
+                                     bdi_score_w00 ~ "BDI score",
+                                     cpd_ps ~ "Cigarettes smoked per day",
+                                     crv_total_pq1 ~ "Cigarette reward value",
+                                     hedonsum_n_pq1 ~ "Pleasurable events (substitute reinforcers)",
+                                     hedonsum_y_pq1 ~ "Pleasurable events (complementary reinforcers)",
+                                     shaps_score_pq1 ~ "Anhedonia",
+                                     otherdiag ~ "Other lifetime DSM-5 diagnosis",
+                                     antidepmed ~ "Taking antidepressant",
+                                     mde_curr ~ "Current vs. past MDD",
+                                     NMR ~ "Nicotine metabolism ratio",
+                                     Only.Menthol ~ "Exclusive mentholated cigarette user",
+                                     readiness ~ "Readiness to quit smoking"),
+              statistic = all_continuous() ~ "{mean} ({sd})",
+              missing = "ifany",
+              missing_text = "Missing") %>%
+  add_overall(last = TRUE) %>%
+  modify_spanning_header(update = all_stat_cols() ~ "**Behavioral and Pharmacological Treatment Assignment**") %>%
+  modify_footnote(update = all_stat_cols() ~ "Mean (SD) for continuous; n (%) for categorical") %>%
+  bold_labels()
+
+summary_table %>%
+  as_kable_extra(booktabs = TRUE, caption = "Participant Characteristics by Treatment Arm",
+                 longtable = TRUE, linesep = "") %>%
+  kableExtra::kable_styling(font_size = 9,
+                            latex_options = c("repeat_header", "HOLD_position", "scale_down"))%>%
+  column_spec(1, width = "3.5cm") %>%
+  column_spec(2, width = "2.5cm") %>%
+  column_spec(3, width = "2.5cm") %>%
+  column_spec(4, width = "2.5cm") %>%
+  column_spec(5, width = "2.5cm") %>%
+  column_spec(6, width = "2.5cm") %>%
+  row_spec(0, bold = TRUE, font_size = 9)
+```
+
+```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
+ggplot(averaged_data_factor, aes(x = abst, fill = inc)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ trt) +
+  labs(title = "Figure 1: Income Levels by Abstinence Status and Treatment Group",
+       x = "Abstinence Status",
+       y = "Proportion",
+       fill = "Income Level") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "GnBu") +
+  theme(axis.title = element_text(size = 8),
+        title = element_text(size = 10),
+        axis.text = element_text(size = 8),
+        legend.text = element_text(size = 8))
+
+ggplot(averaged_data_factor, aes(x = abst, fill = edu)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ trt) +
+  labs(title = "Figure 2: Education Levels by Abstinence Status and Treatment Group",
+       x = "Abstinence Status",
+       y = "Proportion",
+       fill = "Education Level") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "GnBu") +
+  theme(axis.title = element_text(size = 8),
+        title = element_text(size = 10),
+        axis.text = element_text(size = 8),
+        legend.text = element_text(size = 8))
+
+ggplot(averaged_data_factor, aes(x = abst, fill = race)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ trt) +
+  labs(title = "Figure 2: Race by Abstinence Status and Treatment Group",
+       x = "Abstinence Status",
+       y = "Proportion",
+       fill = "Race Group") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "GnBu") +
+  theme(axis.title = element_text(size = 8),
+        title = element_text(size = 10),
+        axis.text = element_text(size = 8),
+        legend.text = element_text(size = 8))
+```
+
+
+```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
+ggplot(averaged_data_factor, aes(x = ftcd_score, fill = abst)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ trt) +
+  labs(title = "Density of FTCD Scores by Abstinence Status and Treatment Group",
+       x = "FTCD Score",
+       y = "Density",
+       fill = "Abstinence Status") +
+  theme_minimal() +
+  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF"))
+
+ggplot(averaged_data_factor, aes(x = shaps_score_pq1, fill = abst)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ trt) +
+  labs(title = "Density of Anhedonia by Abstinence Status and Treatment Group",
+       x = "Anhedonia",
+       y = "Density",
+       fill = "Abstinence Status") +
+  theme_minimal() +
+  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF"))
+
+ggplot(averaged_data_factor, aes(x = readiness, fill = abst)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ trt) +
+  labs(title = "Density of Readiness to Quit by Abstinence Status and Treatment Group",
+       x = "Readiness to Quit",
+       y = "Density",
+       fill = "Abstinence Status") +
+  theme_minimal() +
+  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF"))
+```
+
+\newpage
+# Appendix
+
+```{r ref.label = knitr::all_labels()}
+#| echo: true
+#| eval: false
+```
