@@ -22,6 +22,7 @@ library(pROC)
 library(predtools)
 library(gridExtra)
 library(ggpubr)
+library(patchwork)
 ```
 
 
@@ -46,7 +47,6 @@ data[, c("abst", "Var", "BA", "sex_ps", "NHW",
 ```
 
 `Table 1` presents an overall summary statistics of patients' baseline characteristics by their behavioral and pharmacological treatment assignment. Since our study is a $2 \times 2$, factorial, randomized, placebo-controlled trial, patients are randomly assigned to either behavioral activation for smoking cessation group (BASC) or standard behavioral treatment group (ST) and either varenicline or placebo blister pack. Patients can be categorized into four treatment arm groups: BASC + placebo, BASC + varenicline, ST + placebo, and ST + varenicline. Seeing from `Table 1`, the two placebo groups both have 68 obervations while the two varenicline groups both have 83 observations. 
-
 
 Most variables are evenly distributed across the four treatment arms, which reflects successful randomization in this factorial trial. However, a few key factors, such as socioeconomic indicators (income and education) and specific mental health variables (MDD status, DSM-5 diagnoses), exhibit slight variations that may influence outcomes. Notably, treatment arms with varenicline show higher abstinence rates than placebo groups, suggesting the potential efficacy of this pharmacotherapy in combination with behavioral interventions. While many baseline characteristics are evenly distributed across groups, some may still function as moderators, potentially interacting with treatment assignment to affect abstinence success. 
 
@@ -137,34 +137,53 @@ summary_table %>%
 
 To further investigate the variation among groups, we generate a series of stacked bar plots to illustrate the proportions of several key categorical variables by abstinence status and treatment arms, along with distribution plots for selected continuous variables. We can examine potential differences in these baseline characteristics across treatment and abstinence outcomes, understanding how these factors would influence or interact with our treatment effectiveness.
 
-```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
-ggplot(averaged_data_factor, aes(x = abst, fill = inc)) +
+```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
+a <- ggplot(averaged_data_factor, aes(x = abst, fill = inc)) +
   geom_bar(position = "fill") +
   facet_wrap(~ trt) +
-  labs(title = "Figure 1: Income Levels by Abstinence Status and Treatment Group",
-       x = "Abstinence Status",
+  labs(x = "Abstinence Status",
        y = "Proportion",
        fill = "Income Level") +
   theme_minimal() +
   scale_fill_brewer(palette = "GnBu") +
-  theme(axis.title = element_text(size = 8),
-        title = element_text(size = 10),
-        axis.text = element_text(size = 8),
-        legend.text = element_text(size = 8))
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 4),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6)) +
+  guides(fill = guide_legend(nrow = 3))
 
-ggplot(averaged_data_factor, aes(x = abst, fill = edu)) +
+b <- ggplot(averaged_data_factor, aes(x = abst, fill = edu)) +
   geom_bar(position = "fill") +
   facet_wrap(~ trt) +
-  labs(title = "Figure 2: Education Levels by Abstinence Status and Treatment Group",
-       x = "Abstinence Status",
+  labs(x = "Abstinence Status",
        y = "Proportion",
        fill = "Education Level") +
   theme_minimal() +
   scale_fill_brewer(palette = "GnBu") +
-  theme(axis.title = element_text(size = 8),
-        title = element_text(size = 10),
-        axis.text = element_text(size = 8),
-        legend.text = element_text(size = 8))
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 4),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6)) +
+  guides(fill = guide_legend(nrow = 2))
+
+combined_plot <- (wrap_elements(panel = a + theme(legend.position = "bottom")) /
+                  wrap_elements(panel = b + theme(legend.position = "bottom"))) +
+  plot_layout(ncol = 2, guides = 'collect') +
+  plot_annotation(title = "Figure 1: Baseline Characteristics by Abstinence Status and Treatment Group",
+                  theme = theme(plot.title = element_text(size = 8, hjust = 0.5))) 
+
+combined_plot <- combined_plot & theme(plot.margin = margin(10, 10, 10, 10),
+                                       legend.position = c(0.5, 0.1))
+
+combined_plot
 
 ggplot(averaged_data_factor, aes(x = abst, fill = race)) +
   geom_bar(position = "fill") +
@@ -178,40 +197,105 @@ ggplot(averaged_data_factor, aes(x = abst, fill = race)) +
   theme(axis.title = element_text(size = 8),
         title = element_text(size = 10),
         axis.text = element_text(size = 8),
-        legend.text = element_text(size = 8))
+        legend.text = element_text(size = 6))
 ```
 
 
-```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
-ggplot(averaged_data_factor, aes(x = ftcd_score, fill = abst)) +
+```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
+ftcd_score_plot <- ggplot(averaged_data_factor, aes(x = ftcd_score, fill = abst)) +
   geom_density(alpha = 0.5) +
   facet_wrap(~ trt) +
-  labs(title = "Density of FTCD Scores by Abstinence Status and Treatment Group",
+  labs(title = "FTCD Score",
        x = "FTCD Score",
        y = "Density",
        fill = "Abstinence Status") +
   theme_minimal() +
-  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF"))
+  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF")) +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 4),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6))
 
-ggplot(averaged_data_factor, aes(x = shaps_score_pq1, fill = abst)) +
+shaps_score_pq1_plot <- ggplot(averaged_data_factor, aes(x = shaps_score_pq1, fill = abst)) +
   geom_density(alpha = 0.5) +
   facet_wrap(~ trt) +
-  labs(title = "Density of Anhedonia by Abstinence Status and Treatment Group",
+  labs(title = "Shaps Score",
        x = "Anhedonia",
        y = "Density",
        fill = "Abstinence Status") +
   theme_minimal() +
-  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF"))
+  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF")) +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 4),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6))
 
-ggplot(averaged_data_factor, aes(x = readiness, fill = abst)) +
+combined_plot2 <- (wrap_elements(panel = ftcd_score_plot + theme(legend.position = "bottom")) /
+                  wrap_elements(panel = shaps_score_pq1_plot + theme(legend.position = "bottom"))) +
+  plot_layout(ncol = 2, guides = 'collect') +
+  plot_annotation(title = "Figure 1: Baseline Characteristics by Abstinence Status and Treatment Group",
+                  theme = theme(plot.title = element_text(size = 8, hjust = 0.5))) 
+
+combined_plot2 <- combined_plot2 & theme(plot.margin = margin(10, 10, 10, 10),
+                                       legend.position = c(0.5, 0.1))
+
+combined_plot2
+```
+
+```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
+readiness_plot <- ggplot(averaged_data_factor, aes(x = readiness, fill = abst)) +
   geom_density(alpha = 0.5) +
   facet_wrap(~ trt) +
-  labs(title = "Density of Readiness to Quit by Abstinence Status and Treatment Group",
+  labs(title = "Readiness to Quit",
        x = "Readiness to Quit",
        y = "Density",
        fill = "Abstinence Status") +
   theme_minimal() +
-  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF"))
+  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF"))  +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 4),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6))
+
+NMR_plot <- ggplot(averaged_data_factor, aes(x = NMR, fill = abst)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ trt) +
+  labs(title = "NMR",
+       x = "NMR",
+       y = "Density",
+       fill = "Abstinence Status") +
+  theme_minimal() +
+  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF"))  +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 4),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6))
+
+combined_plot3 <- (wrap_elements(panel = readiness_plot + theme(legend.position = "bottom")) /
+                  wrap_elements(panel = NMR_plot + theme(legend.position = "bottom"))) +
+  plot_layout(ncol = 2, guides = 'collect') +
+  plot_annotation(title = "Figure : Baseline Characteristics by Abstinence Status and Treatment Group",
+                  theme = theme(plot.title = element_text(size = 8, hjust = 0.5))) 
+
+combined_plot3 <- combined_plot3 & theme(plot.margin = margin(10, 10, 10, 10),
+                                       legend.position = c(0.5, 0.1))
+combined_plot3
 ```
 
 ```{r, out.width = "80%", fig.pos = "H", fig.align = "center"}
@@ -269,10 +353,15 @@ for (var in names(averaged_data)) {
 
 ```{r}
 new_data <- averaged_data %>%
-  mutate(race = as.factor(case_when(Black == 1 ~ "Black",
-                          Hisp == 1 ~ "Hispanic",
-                          NHW == 1 ~ "Non-Hispanic White",
-                          TRUE ~ "Other")),
+  mutate(race = as.factor(case_when(Black == 0 & Hisp == 0 & NHW == 0 ~ "Unknown",
+                                    Black == 1 & Hisp == 1 & NHW == 1 ~ "Mixed Race",
+                                    Black == 1 & Hisp == 1 ~ "Mixed Race",
+                                    Black == 1 & NHW == 1 ~ "Mixed Race",
+                                    NHW == 1 & Hisp == 1 ~ "Mixed Race",
+                                    Black == 1 ~ "Black",
+                                    Hisp == 1 ~ "Hispanic",
+                                    NHW == 1 ~ "Non-Hispanic White",
+                                    TRUE ~ "Other")),
          trt = as.factor(case_when(Var == 1 & BA == 1 ~ "BASC + varenicline",
                          Var == 0 & BA == 1 ~ "BASC + placebo",
                          Var == 1 & BA == 0 ~ "ST + varenicline",
@@ -309,35 +398,54 @@ train_index <- createDataPartition(new_data$trt, p = 0.7, list = FALSE)
 train_data <- new_data[train_index, ]
 test_data <- new_data[-train_index, ]
 
-X <- model.matrix(abst ~ trt + age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+X <- model.matrix(abst ~ trt * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
                   bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
                   shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
-                  readiness + race, data = train_data)[, -1]
+                  readiness + race), data = train_data)[, -1]
 y <- train_data$abst
-cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, nfolds = 10, nlambda = 100) 
+cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, nfolds = 10, nlambda = 100)
+plot(cv_model)
 best_lambda <- cv_model$lambda.min
 lasso_model <- glmnet(X, y, family = "binomial", alpha = 1, lambda = best_lambda)
 
-X_interaction <- model.matrix(abst ~ trt * (ftcd_score + NMR + race + mde_curr), 
-                              data = train_data)[, -1]
-y_interaction <- train_data$abst
-cv_model_interaction <- cv.glmnet(X_interaction, y_interaction, family = "binomial", 
-                                  alpha = 1, nfolds = 10, nlambda = 100) 
-best_lambda_interaction <- cv_model_interaction$lambda.min
-lasso_model_interaction <- glmnet(X_interaction, y_interaction, family = "binomial", 
-                                  alpha = 1, lambda = best_lambda_interaction)
+coefficients <- as.data.frame(as.matrix(coef(lasso_model)))
+coefficients$variable_name <- rownames(coefficients)
+rownames(coefficients) <- NULL
+colnames(coefficients) <- c("Estimates", "Variable")
+coefficients <- coefficients[, c("Variable", "Estimates", setdiff(names(coefficients), c("Estimates", "Variable")))] %>%
+  filter(Estimates != 0)
+```
 
-prediction_train <- predict(lasso_model_interaction, X_interaction, type = "response")
-roc_train <- roc(y_interaction, prediction_train)
+```{r}
+prediction_train <- predict(lasso_model, X, type = "response")
+roc_train <- roc(y, prediction_train)
 auc_train <- auc(roc_train)
 print(auc_train)
 ```
 
 ```{r}
-X_test_interaction <- model.matrix(abst ~ trt * (ftcd_score + NMR + race + mde_curr), 
-                                   data = test_data)[, -1]
+# X_interaction <- model.matrix(abst ~ trt * (ftcd_score + NMR + race + mde_curr), 
+#                               data = train_data)[, -1]
+# y_interaction <- train_data$abst
+# cv_model_interaction <- cv.glmnet(X_interaction, y_interaction, family = "binomial", 
+#                                   alpha = 1, nfolds = 10, nlambda = 100) 
+# best_lambda_interaction <- cv_model_interaction$lambda.min
+# lasso_model_interaction <- glmnet(X_interaction, y_interaction, family = "binomial", 
+#                                   alpha = 1, lambda = best_lambda_interaction)
+# 
+# prediction_train <- predict(lasso_model_interaction, X_interaction, type = "response")
+# roc_train <- roc(y_interaction, prediction_train)
+# auc_train <- auc(roc_train)
+# print(auc_train)
+```
+
+```{r}
+X_test_interaction <- model.matrix(abst ~ trt * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                  bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                  shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                  readiness + race), data = test_data)[, -1]
 y_test_interaction <- test_data$abst
-prediction_test <- predict(lasso_model_interaction, X_test_interaction, type = "response")
+prediction_test <- predict(lasso_model, X_test_interaction, type = "response")
 
 roc_test <- roc(y_test_interaction, prediction_test)
 auc_test <- auc(roc_test)
