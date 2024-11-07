@@ -1,0 +1,148 @@
+---
+title: "Function Draft"
+author: "Yingxi Kong"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+# load necessary packages
+library(tidyverse)
+library(mice)
+library(gt)
+library(gtsummary)
+library(kableExtra)
+library(RColorBrewer)
+library(scico)
+library(caret)
+library(glmnet)
+library(pROC)
+library(predtools)
+library(gridExtra)
+library(ggpubr)
+library(patchwork)
+```
+
+
+```{r}
+# set working directory
+# Windows
+setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
+
+# Mac
+# setwd("~/Desktop/Fall 2024/PHP 2550/Data/")
+
+# read in data
+data <- read.csv("project2.csv")
+
+data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
+         "Black", "Hisp", "inc", "edu", "ftcd.5.mins", 
+         "otherdiag", "antidepmed", "mde_curr", 
+         "Only.Menthol")] <- lapply(data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
+                                             "Black", "Hisp", "inc", "edu", 
+                                             "ftcd.5.mins", "otherdiag", "antidepmed", 
+                                             "mde_curr", "Only.Menthol")], as.factor)
+
+new_data <- data %>%
+  mutate(race = as.factor(case_when(Black == 0 & Hisp == 0 & NHW == 0 ~ "Unknown",
+                                    Black == 1 & Hisp == 1 & NHW == 1 ~ "Mixed Race",
+                                    Black == 1 & Hisp == 1 ~ "Mixed Race",
+                                    Black == 1 & NHW == 1 ~ "Mixed Race",
+                                    NHW == 1 & Hisp == 1 ~ "Mixed Race",
+                                    Black == 1 ~ "Black",
+                                    Hisp == 1 ~ "Hispanic",
+                                    NHW == 1 ~ "Non-Hispanic White",
+                                    TRUE ~ "Other")),
+         trt = as.factor(case_when(Var == 1 & BA == 1 ~ "BASC + varenicline",
+                         Var == 0 & BA == 1 ~ "BASC + placebo",
+                         Var == 1 & BA == 0 ~ "ST + varenicline",
+                         Var == 0 & BA == 0 ~ "ST + placebo",
+                         TRUE ~ NA_character_)),
+         inc = fct_recode(as.factor(inc), 
+                          "Less than $20,000" = "1", 
+                          "$20,000-35,000" = "2", 
+                          "$35,001-50,000" = "3", 
+                          "$50,001-75,000" = "4", 
+                          "More than $75,000" = "5"),
+         edu = fct_recode(as.factor(edu), 
+                          "Grade School" = "1", 
+                          "Some high school" = "2", 
+                          "High school graduate or GED" = "3", 
+                          "Some college/technical school" = "4", 
+                          "College graduate" = "5"))
+
+new_data <- new_data %>%
+  mutate(inc = fct_relevel(inc, "Less than $20,000", "$20,000-35,000", 
+                           "$35,001-50,000", "$50,001-75,000", "More than $75,000"),
+         edu = fct_relevel(edu, "Grade School", "Some high school", "High school graduate or GED",
+                           "Some college/technical school", "College graduate"))
+```
+
+```{r}
+# multiple imputation with m = 5
+imputed_data <- mice(new_data, m = 5, method = 'pmm', maxit = 50, seed = 2550, printFlag = FALSE)
+
+# extract the five imputed datasets
+completed_datasets <- list()
+for (i in 1:5) {
+  completed_datasets[[i]] <- complete(imputed_data, i)
+}
+```
+
+```{r}
+# lasso model function
+lasso_model_function <- function(data_list) {
+  lasso_coef <- list()
+  
+  for (index in seq_along(data_list)) {
+    # extract data
+    data <- data_list[[index]]
+    
+    # split train and test sets
+    set.seed(2550)
+    train_index <- createDataPartition(data$trt, p = 0.7, list = FALSE)
+    train_data <- data[train_index, ]
+    test_data <- data[-train_index, ]
+    
+    # create fold ids for cross-validation
+    train_data$foldid <- NA
+    for (trt_level in unique(train_data$trt)) {
+      treatment_data <- train_data[train_data$trt == trt_level, ]
+      fold_ids <- sample(rep(1:10, length.out = nrow(treatment_data)))
+      train_data$foldid[train_data$trt == trt_level] <- fold_ids
+    }
+    
+    # define model matrix
+    X <- model.matrix(abst ~ trt * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race), data = train_data)[, -1]
+    y <- train_data$abst
+    
+    # fit lasso with cross-validation using custom foldid
+    cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, foldid = train_data$foldid)
+    best_lambda <- cv_model$lambda.min
+    
+    # fit the final lasso model using the best lambda
+    lasso_model <- glmnet(X, y, family = "binomial", alpha = 1, lambda = best_lambda)
+    
+    # extract coefficients and store in a data frame
+    coefficients <- as.data.frame(as.matrix(coef(lasso_model)))
+    coefficients$Variable <- rownames(coefficients)
+    rownames(coefficients) <- NULL
+    colnames(coefficients)[1] <- "Estimates"
+    coefficients <- coefficients[, c("Variable", "Estimates", setdiff(names(coefficients), c("Estimates", "Variable")))]
+    
+    # store coef results in list
+    lasso_coef[[index]] <- coefficients
+  }
+  
+  # return the list of coefficients for all imputed datasets
+  return(lasso_coef)
+}
+
+# run the lasso model function on the list of imputed datasets
+lasso_coef_results <- lasso_model_function(completed_datasets)
+```
