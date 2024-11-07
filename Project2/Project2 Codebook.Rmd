@@ -27,7 +27,11 @@ library(ggpubr)
 
 ```{r}
 # set working directory
-setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
+# Windows
+# setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
+
+# Mac
+setwd("~/Desktop/Fall 2024/PHP 2550/Data/")
 
 # read in data
 data <- read.csv("project2.csv")
