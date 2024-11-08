@@ -29,10 +29,10 @@ library(patchwork)
 ```{r}
 # set working directory
 # Windows
-setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
+# setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
 
 # Mac
-# setwd("~/Desktop/Fall 2024/PHP 2550/Data/")
+setwd("~/Desktop/Fall 2024/PHP 2550/Data/")
 
 # read in data
 data <- read.csv("project2.csv")
@@ -102,7 +102,7 @@ lasso_model_function <- function(data_list) {
     
     # split train and test sets
     set.seed(2550)
-    train_index <- createDataPartition(data$trt, p = 0.7, list = FALSE)
+    train_index <- createDataPartition(new_data$trt, p = 0.7, list = FALSE)
     train_data <- data[train_index, ]
     test_data <- data[-train_index, ]
     
@@ -145,4 +145,77 @@ lasso_model_function <- function(data_list) {
 
 # run the lasso model function on the list of imputed datasets
 lasso_coef_results <- lasso_model_function(completed_datasets)
+```
+
+```{r}
+imputed_coefs_list <- list()
+
+for (i in seq_along(lasso_coef_results)) {
+  coefs <- lasso_coef_results[[i]]
+  colnames(coefs)[colnames(coefs) == "Estimates"] <- paste0("Estimates_", i)
+  imputed_coefs_list[[i]] <- coefs[, c("Variable", paste0("Estimates_", i))]
+}
+
+# Combine all imputed datasets' coefficients by column
+wide_format_coefficients <- Reduce(function(x, y) merge(x, y, by = "Variable", all = TRUE), imputed_coefs_list)
+wide_format_coefficients$Pooled_Estimate <- rowMeans(wide_format_coefficients[ , grep("Estimates_",
+                                                                                      names(wide_format_coefficients))], 
+                                                     na.rm = TRUE)
+```
+
+```{r}
+long_data_train <- data.frame()
+long_data_test <- data.frame()
+set.seed(2550)
+train_index <- createDataPartition(new_data$trt, p = 0.7, list = FALSE)
+
+for (i in seq_len(imputed_data$m)) {
+  imputed_dataset <- complete(imputed_data, i)
+  train_set <- imputed_dataset[train_index, ]
+  test_set <- imputed_dataset[-train_index, ]
+  
+  long_data_train <- rbind(long_data_train, train_set)
+  long_data_test <- rbind(long_data_test, test_set)
+}
+```
+
+```{r}
+# create the design matrix with interaction terms
+long_data_matrix <- model.matrix(abst ~ trt * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                                 bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 +
+                                                 hedonsum_y_pq1 + shaps_score_pq1 + otherdiag + antidepmed +
+                                                 mde_curr + NMR + Only.Menthol + readiness + race),
+                                 data = long_data_train)
+
+# convert the design matrix to a data frame
+long_data_trainset <- as.data.frame(long_data_matrix)
+
+# extract the intercept from pooled coefficients
+pooled_intercept <- wide_format_coefficients %>%
+  filter(Variable == "(Intercept)") %>%
+  pull(Pooled_Estimate)
+
+# extract only non-intercept pooled coefficients
+pooled_coefs <- wide_format_coefficients %>%
+  filter(Variable != "(Intercept)")
+
+# ensure the predictor variables in the data match those in pooled coefficients
+predictor_vars <- pooled_coefs$Variable
+long_data_trainset <- long_data_trainset[, predictor_vars, drop = FALSE]  # Select only predictor variables
+
+# calculate log-odds using matrix multiplication with pooled coefficients
+long_data_trainset$log_odds <- pooled_intercept + as.matrix(long_data_trainset) %*% pooled_coefs$Pooled_Estimate
+
+# convert log-odds to probabilities
+long_data_trainset$predicted_prob <- 1 / (1 + exp(-long_data_trainset$log_odds))
+```
+
+```{r}
+auc_result <- roc(long_data_train$abst, long_data_trainset$predicted_prob)
+
+# Print the AUC value
+print(paste("AUC:", auc(auc_result)))
+
+# Optionally, plot the ROC curve
+plot(auc_result, main = "ROC Curve for Predicted Probabilities on Training Data")
 ```
