@@ -4,6 +4,17 @@ author: "Yingxi Kong"
 output: pdf_document
 ---
 
+# Abstract
+
+**Background:**
+
+**Methods:**
+
+**Results:**
+
+**Conclusion:**
+
+# Introduction
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
@@ -23,20 +34,35 @@ library(predtools)
 library(gridExtra)
 library(ggpubr)
 library(patchwork)
+library(e1071)
 ```
-
 
 ```{r}
 # set working directory
 # Windows
-# setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
+setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
 
 # Mac
-setwd("~/Desktop/Fall 2024/PHP 2550/Data/")
+# setwd("~/Desktop/Fall 2024/PHP 2550/Data/")
 
 # read in data
 data <- read.csv("project2.csv")
+```
 
+
+# Methods
+
+The data in this analysis is a collaboration with Dr. George Papandonatos from a 2 x 2 factorial, randomized, placebo-controlled study examining the efficacy and safety of behavioral activation for smoking cessation (BASC) and varenicline in treating tobacco dependence among adults with current or past major depressive disorder (MDD). Our sample population consists of 300 adults smokers with or previously with MDD. Patients were randomly assigned to either behavioral activation for smoking cessation (BASC) or standard behavioral treatment (ST) and either varenicline or placebo groups. Randomization was stratified by clinical site, sex, and level of depressive symptoms to ensure balanced representation across these factors. The data also records patients' smoking cessation outcomes and relevant baseline characteristics. Key variables include smoking abstinence status, demographic characteristics (sex, age, income, education), their smoking behaviors (cigarettes per day, time to first cigarette after getting up, nicotine dependence score), and their psychiatric measures (MDD status, anhedonia score, other diagnoses, and antidepressant usage). Using this data, our analysis aims to identify baseline variables as moderators of the treatment effects on end-of-treatment (EOT) abstinence and as predictors of smoking cessation, controlling for behavioral treatment and pharmacotherapy.
+
+## Data Preprocessing
+
+To prepare the data for analysis, we firstly convert all categorical variables to factor and for socioeconomic factors (income and education) with ordinal levels, we recoded levels in order to improve readability and interpretability. In addition, we generate a new treatment variables to capture the four distinct intervention groups formed by the 2x2 factorial design, including `ST + placebo`, `ST + varenicline`, `BASC + placebo`, and `BASC + varenicline.` This new treatment variable was set to reference `ST + placebo` for comparison among groups. Additionally, we combined race and ethnicity indicators into a single race variable with categories including "Black," "Hispanic," "Non-Hispanic White," "Mixed Race," and "Unknown."
+
+The data also contains various levels of missingness across several variables presented in `Table 1.` Nicotine Metabolism Ratio (`NMR`) has the highest missingness rate, with 7% of observations missing. The FTCD score at baseline (`ftcd_score`) has the lowest missing rate, 0.33%, with only one patient missing information on this variable. Given the limited sample size of this data, we prefer to maintain as many observations as possible in our analysis. Thus, to address the missingness, we applied a multiple imputation approach using the `mice()` function from the mice package in R which provides plausible values for all missing entries across five imputed datasets.
+
+
+```{r}
+# factor categorical variables
 data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
          "Black", "Hisp", "inc", "edu", "ftcd.5.mins", 
          "otherdiag", "antidepmed", "mde_curr", 
@@ -45,6 +71,405 @@ data[, c("abst", "Var", "BA", "sex_ps", "NHW",
                                              "ftcd.5.mins", "otherdiag", "antidepmed", 
                                              "mde_curr", "Only.Menthol")], as.factor)
 
+# Recode factor levels in the dataset
+averaged_data_factor <- data %>%
+  mutate(abst = fct_recode(as.factor(abst), "Yes" = "1", "No" = "0"),
+         inc = fct_recode(as.factor(inc), 
+                          "Less than $20,000" = "1", 
+                          "$20,000-35,000" = "2", 
+                          "$35,001-50,000" = "3", 
+                          "$50,001-75,000" = "4", 
+                          "More than $75,000" = "5"),
+         sex_ps = fct_recode(as.factor(sex_ps), "Male" = "1", "Female" = "2"),
+         edu = fct_recode(as.factor(edu), 
+                          "Grade School" = "1", 
+                          "Some high school" = "2", 
+                          "High school graduate or GED" = "3", 
+                          "Some college/technical school" = "4", 
+                          "College graduate" = "5"),
+         ftcd.5.mins = fct_recode(as.factor(ftcd.5.mins), "Yes" = "1", "No" = "0"),
+         otherdiag = fct_recode(as.factor(otherdiag), "Yes" = "1", "No" = "0"),
+         antidepmed = fct_recode(as.factor(antidepmed), "Yes" = "1", "No" = "0"),
+         mde_curr = fct_recode(as.factor(mde_curr), "Current MDD" = "1", "Past MDD" = "0"),
+         Only.Menthol = fct_recode(as.factor(Only.Menthol), "Yes" = "1", "No" = "0"),
+         race = as.factor(case_when(Black == 0 & Hisp == 0 & NHW == 0 ~ "Unknown",
+                                    Black == 1 & Hisp == 1 & NHW == 1 ~ "Mixed Race",
+                                    Black == 1 & Hisp == 1 ~ "Mixed Race",
+                                    Black == 1 & NHW == 1 ~ "Mixed Race",
+                                    NHW == 1 & Hisp == 1 ~ "Mixed Race",
+                                    Black == 1 ~ "Black",
+                                    Hisp == 1 ~ "Hispanic",
+                                    NHW == 1 ~ "Non-Hispanic White",
+                                    TRUE ~ "Other")),
+         trt = as.factor(case_when(Var == 1 & BA == 1 ~ "BASC + varenicline",
+                         Var == 0 & BA == 1 ~ "BASC + placebo",
+                         Var == 1 & BA == 0 ~ "ST + varenicline",
+                         Var == 0 & BA == 0 ~ "ST + placebo",
+                         TRUE ~ NA_character_)))
+
+averaged_data_factor$trt <- relevel(factor(averaged_data_factor$trt), ref = "ST + placebo")
+
+averaged_data_factor <- averaged_data_factor %>%
+  mutate(inc = fct_relevel(inc, "Less than $20,000", "$20,000-35,000", 
+                           "$35,001-50,000", "$50,001-75,000", "More than $75,000"),
+         edu = fct_relevel(edu, "Grade School", "Some high school", "High school graduate or GED",
+                           "Some college/technical school", "College graduate"))
+```
+
+
+```{r}
+missingness_df <- averaged_data_factor %>%
+    summarise(across(everything(), ~ sum(is.na(.)))) %>%
+    pivot_longer(cols = everything(), names_to = "Variable", values_to = "Missing_Count") %>%
+    mutate(Total_Count = nrow(averaged_data_factor),
+           Missing_Percentage = paste(round((Missing_Count / Total_Count) * 100, 2), "%")) %>%
+    arrange(desc(Missing_Percentage)) %>% 
+  filter(Missing_Count != 0) %>%
+  select(-Total_Count)
+
+colnames(missingness_df) <- c("Variable", "Missing Count", "Missing Percentage")
+missingness_df %>%
+  kable(booktabs = TRUE, caption = "Summary of Missing Data Patterns Across Variables ") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+```
+
+## Data Exploration and Transformation
+
+Before conducting the primary analysis, we performed exploratory data analysis (EDA) to examine baseline characteristics, assess data distributions, and identify potential relationships within the dataset.
+
+For categorical variables, we plot bar charts to show patterns across treatment groups and abstinence groups shown in `Figure 1` and `Figure 2.` Income in `Figure 1` exhibits differences among groups and abstinence outcomes. For example, participants with income less than $20,000 are less likely to stop smoking in both the `ST + placebo` and `BASC + varenicline` groups that more people would still continue to smoke at the week 27 follow-up. Even in the `BASC + placebo` group, no patients stop smoking at week 27. However, this pattern reverses in the `ST + varenicline` group that lower-income individuals show a relatively higher likelihood of smoking abstinence. That is, the combination of standard treatment with varenicline may have a greater impact on smoking cessation for lower-income participants. This reversal pattern suggests that income level might be a potential moderator of the treatment effectiveness on the EOT abstinence among people with MDD. 
+
+```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
+income_stackplot <- ggplot(averaged_data_factor, aes(x = abst, fill = inc)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ trt) +
+  labs(x = "Abstinence Status",
+       y = "Proportion",
+       fill = "Income Level") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "GnBu") +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6)) +
+  guides(fill = guide_legend(nrow = 2))
+
+edu_stackplot <- ggplot(averaged_data_factor, aes(x = abst, fill = edu)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ trt) +
+  labs(x = "Abstinence Status",
+       y = "Proportion",
+       fill = "Education Level") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "GnBu") +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6)) +
+  guides(fill = guide_legend(nrow = 2))
+
+combined_plot_eduinc <- (wrap_elements(panel = income_stackplot + theme(legend.position = "bottom")) /
+                           wrap_elements(panel = edu_stackplot + theme(legend.position = "bottom"))) +
+  plot_layout(ncol = 2, guides = 'collect') +
+  plot_annotation(title = "Figure 1: Baseline Characteristics by Abstinence Status and Treatment Group (Categorical 1)",
+                  theme = theme(plot.title = element_text(size = 8, hjust = 0.5))) 
+
+combined_plot_eduinc <- combined_plot_eduinc & theme(plot.margin = margin(10, 10, 10, 10),
+                                                     legend.position = c(0.5, 0.1))
+
+combined_plot_eduinc
+```
+
+Similar for education level presented in `Figure 2,` people with lower education level (grade school, some high school, or high school graduate) shows less probability of smoking cessation, especially in the `ST + placebo,` `BASC + placebo,` and `BASC + varenicline` group, suggesting the potential association between education level and smoking cessation after treatment.However, participants in the `ST + varenicline` groups show relatively higher likelihood of abstinence, suggesting potential interacting relationship between education level and treatment assignment on the abstinence. In addition, college graduated participants in the two placebo groups show higher probability of abstinence while those participants in the two varenicline groups show reversed pattern as well, further suggesting that education level could be a potential moderator of the treatment effects on the EOT abstinence among people with MDD. 
+
+Race and the indicator of exclusive mentholated cigarette users (`Only.Menthol`) also exhibit difference distribution across treatment groups and outcome values shown in `Figure 2.` For instance, black people generally face greater challenges of smoking cessation as they continuously exhibit lower abstinence rate across different treatment groups, particularly in the `ST + placebo` and `BASC + placebo` groups. However, in the `BASC + varenicline` group, the difference between proportion of black participants who continue or stop smoking becomes less pronounced. Even in the `ST + varenicline` group, black participants exhibit higher abstinence rates, suggesting that varenicline may be particularly effective to mitigate challenges in cessation among black individuals. Also for `Only.Menthol`, among the first three treatment groups, mentholated cigarette users show lower likelihood to achieve smoking cessation and non-mentholated cigarette users exhibit higher probability to stop smoking. This pattern is reversed in the `ST + varenicline` group again. These findings suggest that race and the indicator of exclusive mentholated cigarette users could be potential predictors or moderators of the treatment effects on the EOT abstinence for people with MDD.
+
+```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
+race_stackplot <- ggplot(averaged_data_factor, aes(x = abst, fill = race)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ trt) +
+  labs(x = "Abstinence Status",
+       y = "Proportion",
+       fill = "Race Group") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "GnBu") +
+   theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6))
+
+
+only.menthol_stackplot <- ggplot(averaged_data_factor, aes(x = abst, fill = Only.Menthol)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ trt) +
+  labs(x = "Abstinence Status",
+       y = "Proportion",
+       fill = "Mentholated Cigarette User") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "GnBu") +
+   theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6))
+
+combined_plot_racementhol <- (wrap_elements(panel = race_stackplot + theme(legend.position = "bottom")) /
+                           wrap_elements(panel = only.menthol_stackplot + theme(legend.position = "bottom"))) +
+  plot_layout(ncol = 2, guides = 'collect') +
+  plot_annotation(title = "Figure 2: Baseline Characteristics by Abstinence Status and Treatment Group (Categorical 2)",
+                  theme = theme(plot.title = element_text(size = 8, hjust = 0.5))) 
+
+combined_plot_racementhol <- combined_plot_racementhol & theme(plot.margin = margin(10, 10, 10, 10),
+                                                               legend.position = c(0.5, 0.1))
+
+combined_plot_racementhol
+```
+
+```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
+ftcd_score_stackplot <- ggplot(averaged_data_factor, aes(x = ftcd_score, fill = abst)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ trt) +
+  labs(x = "FTCD Score",
+       y = "Density",
+       fill = "Abstinence Status") +
+  theme_minimal() +
+  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF")) +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6))
+
+age_stackplot <- ggplot(averaged_data_factor, aes(x = age_ps, fill = abst)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ trt) +
+  labs(title = "",
+       x = "Age",
+       y = "Density",
+       fill = "Abstinence Status") +
+  theme_minimal() +
+  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF")) +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6))
+
+combined_plot_ftcdage <- (wrap_elements(panel = ftcd_score_stackplot + theme(legend.position = "bottom")) /
+                            wrap_elements(panel = age_stackplot + theme(legend.position = "bottom"))) +
+  plot_layout(ncol = 2, guides = 'collect') +
+  plot_annotation(title = "Figure 3: Baseline Characteristics by Abstinence Status and Treatment Group (Continuous 1)",
+                  theme = theme(plot.title = element_text(size = 8, hjust = 0.5))) 
+
+combined_plot_ftcdage <- combined_plot_ftcdage & theme(plot.margin = margin(10, 10, 10, 10),
+                                                       legend.position = c(0.5, 0.1))
+
+combined_plot_ftcdage
+```
+
+```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
+NMR_stackplot <- ggplot(averaged_data_factor, aes(x = NMR, fill = abst)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ trt) +
+  labs(x = "NMR",
+       y = "Density",
+       fill = "Abstinence Status") +
+  theme_minimal() +
+  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF")) +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6))
+
+bdi_stackplot <- ggplot(averaged_data_factor, aes(x = bdi_score_w00, fill = abst)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ trt) +
+  labs(x = "BDI Score",
+       y = "Density",
+       fill = "Abstinence Status") +
+  theme_minimal() +
+  scale_fill_manual(values = c("No" = "#FF9999", "Yes" = "#99CCFF")) +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        legend.position = "bottom",
+        strip.text = element_text(size = 6))
+
+combined_plot_NMRbdi <- (wrap_elements(panel = NMR_stackplot + theme(legend.position = "bottom")) /
+                           wrap_elements(panel = bdi_stackplot + theme(legend.position = "bottom"))) +
+  plot_layout(ncol = 2, guides = 'collect') +
+  plot_annotation(title = "Figure 4: Baseline Characteristics by Abstinence Status and Treatment Group (Continuous 2)",
+                  theme = theme(plot.title = element_text(size = 8, hjust = 0.5))) 
+
+combined_plot_NMRbdi <- combined_plot_NMRbdi & theme(plot.margin = margin(10, 10, 10, 10),
+                                                     legend.position = c(0.5, 0.1))
+
+combined_plot_NMRbdi
+```
+
+```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
+# # check continuous variable distribution
+# par(mfrow = c(2, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 4, 0))
+# hist(averaged_data_factor$hedonsum_n_pq1, main = "", xlab = "hedonsum_n_pq1", 
+#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
+# hist(averaged_data_factor$hedonsum_y_pq1, main = "", xlab = "hedonsum_y_pq1", 
+#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
+# hist(averaged_data_factor$shaps_score_pq1, main = "", xlab = "shaps_score_pq1", 
+#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
+# hist(averaged_data_factor$NMR, main = "", xlab = "NMR", 
+#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
+# mtext("Figure : Distribution of Skewed Variables (Before Transformation)", outer = TRUE, cex = 0.8, font = 1)
+
+# Take transformation
+averaged_data_factor_transformed <- averaged_data_factor
+averaged_data_factor_transformed$shaps_score_pq1 <- asinh(averaged_data_factor$shaps_score_pq1)
+averaged_data_factor_transformed$hedonsum_n_pq1 <- sqrt(averaged_data_factor$hedonsum_n_pq1)
+averaged_data_factor_transformed$hedonsum_y_pq1 <- sqrt(averaged_data_factor$hedonsum_y_pq1)
+averaged_data_factor_transformed$NMR <- log(averaged_data_factor$NMR)
+
+# par(mfrow = c(2, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 4, 0))
+# hist(averaged_data_factor_transformed$hedonsum_n_pq1, main = "", xlab = "hedonsum_n_pq1", 
+#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
+# hist(averaged_data_factor_transformed$hedonsum_y_pq1, main = "", xlab = "hedonsum_y_pq1", 
+#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
+# hist(averaged_data_factor_transformed$shaps_score_pq1, main = "", xlab = "shaps_score_pq1", 
+#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
+# hist(averaged_data_factor_transformed$NMR, main = "", xlab = "NMR", 
+#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
+# mtext("Figure : Distribution of Skewed Variables (After Transformation)", outer = TRUE, cex = 0.8, font = 1)
+
+skewness_df <- data.frame(Variable = c("hedonsum_n_pq1", "hedonsum_y_pq1", "shaps_score_pq1", "NMR"),
+                          transformation = c("Square Root Transformation",
+                                             "Square Root Transformation",
+                                             "Inverse Hyperbolic Sine Transformation",
+                                             "Log Transformation"),
+                          skewness_before = c(skewness(averaged_data_factor$hedonsum_n_pq1),
+                                              skewness(averaged_data_factor$hedonsum_y_pq1),
+                                              skewness(averaged_data_factor$shaps_score_pq1, na.rm = TRUE),
+                                              skewness(averaged_data_factor$NMR, na.rm = TRUE)),
+                          skewness_after = c(skewness(averaged_data_factor_transformed$hedonsum_n_pq1),
+                                             skewness(averaged_data_factor_transformed$hedonsum_y_pq1),
+                                             skewness(averaged_data_factor_transformed$shaps_score_pq1, na.rm = TRUE),
+                                             skewness(averaged_data_factor_transformed$NMR, na.rm = TRUE)))
+
+colnames(skewness_df) <- c("Variable", "Transformation", 
+                           "Skewness before Transformation", "Skewness after Transformation" )
+
+skewness_df %>%
+  kable(booktabs = TRUE, caption = "Variable Transformation on Skewness") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "2cm") %>% 
+  column_spec(2, width = "4cm") %>%
+  column_spec(3, width = "3.5cm") %>%
+  column_spec(4, width = "3.5cm")
+```
+
+
+## Data Preprocessing
+
+# Results
+
+`Table 1` presents an overall summary statistics of patients' baseline characteristics by their behavioral and pharmacological treatment assignment. Since our study is a $2 \times 2$, factorial, randomized, placebo-controlled trial, patients are randomly assigned to either behavioral activation for smoking cessation group (BASC) or standard behavioral treatment group (ST) and either varenicline or placebo blister pack. Patients can be categorized into four treatment arm groups: BASC + placebo, BASC + varenicline, ST + placebo, and ST + varenicline. Seeing from `Table 1`, the two placebo groups both have 68 obervations while the two varenicline groups both have 83 observations. 
+
+Most variables are evenly distributed across the four treatment arms, which reflects successful randomization in this factorial trial. However, a few key factors, such as socioeconomic indicators (income and education) and specific mental health variables (MDD status, DSM-5 diagnoses), exhibit slight variations that may influence outcomes. Notably, treatment arms with varenicline show higher abstinence rates than placebo groups, suggesting the potential efficacy of this pharmacotherapy in combination with behavioral interventions. While many baseline characteristics are evenly distributed across groups, some may still function as moderators, potentially interacting with treatment assignment to affect abstinence success.
+
+
+```{r}
+# create the summary table
+summary_table <- averaged_data_factor %>%
+  select(-c("id", "Var", "BA", "Black", "Hisp", "NHW")) %>%
+  tbl_summary(by = trt, label = list(abst ~ "Smoking abstinence",
+                                     race ~ "Race",
+                                     age_ps ~ "Age",
+                                     sex_ps ~ "Sex",
+                                     inc ~ "Income",
+                                     edu ~ "Education",
+                                     ftcd_score ~ "FTCD score",
+                                     ftcd.5.mins ~ "Smoking within 5 mins of waking up",
+                                     bdi_score_w00 ~ "BDI score",
+                                     cpd_ps ~ "Cigarettes smoked per day",
+                                     crv_total_pq1 ~ "Cigarette reward value",
+                                     hedonsum_n_pq1 ~ "Pleasurable events (substitute reinforcers)",
+                                     hedonsum_y_pq1 ~ "Pleasurable events (complementary reinforcers)",
+                                     shaps_score_pq1 ~ "Anhedonia",
+                                     otherdiag ~ "Other lifetime DSM-5 diagnosis",
+                                     antidepmed ~ "Taking antidepressant",
+                                     mde_curr ~ "Current vs. past MDD",
+                                     NMR ~ "Nicotine metabolism ratio",
+                                     Only.Menthol ~ "Exclusive mentholated cigarette user",
+                                     readiness ~ "Readiness to quit smoking"),
+              type = list(readiness ~ "continuous"),
+              statistic = all_continuous() ~ "{mean} ({sd})",
+              missing = "ifany",
+              missing_text = "Missing") %>%
+  add_overall(last = TRUE) %>%
+  modify_spanning_header(update = all_stat_cols() ~ "**Behavioral and Pharmacological Treatment Assignment**") %>%
+  modify_footnote(update = all_stat_cols() ~ "Mean (SD) for continuous; n (%) for categorical") %>%
+  bold_labels()
+
+summary_table %>%
+  as_kable_extra(booktabs = TRUE, caption = "Participant Characteristics by Treatment Arm",
+                 longtable = TRUE, linesep = "") %>%
+  kableExtra::kable_styling(font_size = 7,
+                            latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "3.5cm") %>%
+  column_spec(2, width = "2cm") %>%
+  column_spec(3, width = "2cm") %>%
+  column_spec(4, width = "2cm") %>%
+  column_spec(5, width = "2cm") %>%
+  column_spec(6, width = "2cm") %>%
+  row_spec(0, bold = TRUE, font_size = 7)
+```
+
+```{r}
+# set working directory
+# Windows
+setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
+
+# Mac
+# setwd("~/Desktop/Fall 2024/PHP 2550/Data/")
+
+# read in data
+data <- read.csv("project2.csv")
+
+# factor categorical variables
+data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
+         "Black", "Hisp", "inc", "edu", "ftcd.5.mins", 
+         "otherdiag", "antidepmed", "mde_curr", 
+         "Only.Menthol")] <- lapply(data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
+                                             "Black", "Hisp", "inc", "edu", 
+                                             "ftcd.5.mins", "otherdiag", "antidepmed", 
+                                             "mde_curr", "Only.Menthol")], as.factor)
+
+# generate and recode necessary columns
 new_data <- data %>%
   mutate(race = as.factor(case_when(Black == 0 & Hisp == 0 & NHW == 0 ~ "Unknown",
                                     Black == 1 & Hisp == 1 & NHW == 1 ~ "Mixed Race",
@@ -73,6 +498,9 @@ new_data <- data %>%
                           "Some college/technical school" = "4", 
                           "College graduate" = "5"))
 
+new_data$trt <- relevel(factor(new_data$trt), ref = "ST + placebo")
+
+# relevel inc and edu to make them ordinal with correct level
 new_data <- new_data %>%
   mutate(inc = fct_relevel(inc, "Less than $20,000", "$20,000-35,000", 
                            "$35,001-50,000", "$50,001-75,000", "More than $75,000"),
@@ -84,10 +512,17 @@ new_data <- new_data %>%
 # multiple imputation with m = 5
 imputed_data <- mice(new_data, m = 5, method = 'pmm', maxit = 50, seed = 2550, printFlag = FALSE)
 
-# extract the five imputed datasets
+# extract the five imputed datasets to a data list
 completed_datasets <- list()
 for (i in 1:5) {
   completed_datasets[[i]] <- complete(imputed_data, i)
+}
+
+for (i in 1:length(completed_datasets)) {
+  completed_datasets[[i]]$shaps_score_pq1 <- asinh(completed_datasets[[i]]$shaps_score_pq1)
+  completed_datasets[[i]]$hedonsum_n_pq1 <- sqrt(completed_datasets[[i]]$hedonsum_n_pq1)
+  completed_datasets[[i]]$hedonsum_y_pq1 <- sqrt(completed_datasets[[i]]$hedonsum_y_pq1)
+  completed_datasets[[i]]$NMR <- log(completed_datasets[[i]]$NMR)
 }
 ```
 
@@ -148,6 +583,7 @@ lasso_coef_results <- lasso_model_function(completed_datasets)
 ```
 
 ```{r}
+# generate a coefficient data frame extracting from five lasso models 
 imputed_coefs_list <- list()
 
 for (i in seq_along(lasso_coef_results)) {
@@ -156,19 +592,22 @@ for (i in seq_along(lasso_coef_results)) {
   imputed_coefs_list[[i]] <- coefs[, c("Variable", paste0("Estimates_", i))]
 }
 
-# Combine all imputed datasets' coefficients by column
+# combine all imputed datasets' coefficients by column and calculate pooled estimates
 wide_format_coefficients <- Reduce(function(x, y) merge(x, y, by = "Variable", all = TRUE), imputed_coefs_list)
-wide_format_coefficients$Pooled_Estimate <- rowMeans(wide_format_coefficients[ , grep("Estimates_",
-                                                                                      names(wide_format_coefficients))], 
-                                                     na.rm = TRUE)
+wide_format_coefficients$Pooled_Estimate <- rowMeans(
+  wide_format_coefficients[ , grep("Estimates_", names(wide_format_coefficients))], 
+  na.rm = TRUE)
 ```
 
 ```{r}
 long_data_train <- data.frame()
 long_data_test <- data.frame()
+
+# get stratified training index based on treatment group
 set.seed(2550)
 train_index <- createDataPartition(new_data$trt, p = 0.7, list = FALSE)
 
+# generate long format of train and test dataframe from the five imputed datasets
 for (i in seq_len(imputed_data$m)) {
   imputed_dataset <- complete(imputed_data, i)
   train_set <- imputed_dataset[train_index, ]
@@ -181,14 +620,14 @@ for (i in seq_len(imputed_data$m)) {
 
 ```{r}
 # create the design matrix with interaction terms
-long_data_matrix <- model.matrix(abst ~ trt * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+long_data_matrix_train <- model.matrix(abst ~ trt * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
                                                  bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 +
                                                  hedonsum_y_pq1 + shaps_score_pq1 + otherdiag + antidepmed +
                                                  mde_curr + NMR + Only.Menthol + readiness + race),
                                  data = long_data_train)
 
 # convert the design matrix to a data frame
-long_data_trainset <- as.data.frame(long_data_matrix)
+long_data_trainset <- as.data.frame(long_data_matrix_train)
 
 # extract the intercept from pooled coefficients
 pooled_intercept <- wide_format_coefficients %>%
@@ -201,7 +640,7 @@ pooled_coefs <- wide_format_coefficients %>%
 
 # ensure the predictor variables in the data match those in pooled coefficients
 predictor_vars <- pooled_coefs$Variable
-long_data_trainset <- long_data_trainset[, predictor_vars, drop = FALSE]  # Select only predictor variables
+long_data_trainset <- long_data_trainset[, predictor_vars, drop = FALSE] 
 
 # calculate log-odds using matrix multiplication with pooled coefficients
 long_data_trainset$log_odds <- pooled_intercept + as.matrix(long_data_trainset) %*% pooled_coefs$Pooled_Estimate
@@ -211,11 +650,41 @@ long_data_trainset$predicted_prob <- 1 / (1 + exp(-long_data_trainset$log_odds))
 ```
 
 ```{r}
-auc_result <- roc(long_data_train$abst, long_data_trainset$predicted_prob)
+# create the design matrix with interaction terms
+long_data_matrix_test <- model.matrix(abst ~ trt * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                                 bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 +
+                                                 hedonsum_y_pq1 + shaps_score_pq1 + otherdiag + antidepmed +
+                                                 mde_curr + NMR + Only.Menthol + readiness + race),
+                                 data = long_data_test)
 
-# Print the AUC value
-print(paste("AUC:", auc(auc_result)))
+# convert the design matrix to a data frame
+long_data_testset <- as.data.frame(long_data_matrix_test)
 
-# Optionally, plot the ROC curve
-plot(auc_result, main = "ROC Curve for Predicted Probabilities on Training Data")
+# ensure the predictor variables in the data match those in pooled coefficients
+long_data_testset <- long_data_testset[, predictor_vars, drop = FALSE] 
+
+# calculate log-odds using matrix multiplication with pooled coefficients
+long_data_testset$log_odds <- pooled_intercept + as.matrix(long_data_testset) %*% pooled_coefs$Pooled_Estimate
+
+# convert log-odds to probabilities
+long_data_testset$predicted_prob <- 1 / (1 + exp(-long_data_testset$log_odds))
 ```
+
+```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
+# do roc on train and test sets
+auc_result <- roc(long_data_train$abst, long_data_trainset$predicted_prob)
+auc_result_test <- roc(long_data_test$abst, long_data_testset$predicted_prob)
+
+# plot roc for both sets
+par(mfrow= c(1,2), oma = c(0, 0, 2, 0))
+plot(auc_result, main = "Train Data", font.main = 1, cex.main = 0.8, cex.lab = 0.8)
+text(0.3, 0.2, paste("AUC =", round(auc(auc_result), 3)), col = "blue", cex = 0.7)
+
+plot(auc_result_test, main = "Test Data", font.main = 1, cex.main = 0.8, cex.lab = 0.8)
+text(0.3, 0.2, paste("AUC =", round(auc(auc_result_test), 3)), col = "blue", cex = 0.7)
+```
+
+
+
+## Discussion
+
