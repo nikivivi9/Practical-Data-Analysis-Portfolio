@@ -1,7 +1,10 @@
 ---
 title: "Function Draft"
 author: "Yingxi Kong"
-output: pdf_document
+output:
+  pdf_document
+bibliography: references.bib
+csl: apa-numeric-superscript.csl
 ---
 
 # Abstract
@@ -15,6 +18,12 @@ output: pdf_document
 **Conclusion:**
 
 # Introduction
+
+MDD has been one of the most prevalent mental health disorders in the world, with rates that have continued to rise, particularly during the COVID-19 pandemic[@santomauro2021global]. Individuals with MDD are not only at risk for a range of adverse health outcomes but are also more likely to engage in harmful health behaviors, including tobacco use which is one of the most prevalent health-compromising behaviors among people with MDD, with the rate of smoking among individuals with major depressive disorder (MDD) is 2–3 higher than in the general population [@weinberger2020trends]. However, most smoking cessation clinical trials have excluded this important group from trial enrollment [@hitsman2013past], limiting information and suggestion for this group who wants to quit smoking. 
+
+In a recent 2 × 2 factorial, randomized, placebo-controlled trial led by Dr. George Papandonatos, the efficacy and safety of combining behavioral and pharmacological treatment were evaluated among individuals with current or past MDD. Behavioral activation for smoking cessation (BASC), a behavioral treatment designed to enhance engagement in rewarding activities and reduce avoidance behavior, was paired with varenicline, a pharmacotherapy shown to reduce cravings and mitigate nicotine's rewarding effects. The trial included 300 participants and compared BASC to standard treatment (ST) and varenicline to placebo. The results indicated that while varenicline significantly improved abstinence rates compared to placebo, BASC did not outperform ST, suggesting that while pharmacotherapy may provide substantial benefit for smokers with MDD, the behavioral component of cessation treatment may require further refinement.
+
+This study is a collaboration with Dr. George Papandonatos, aiming to investigate the potential effect of baseline characteristics on the effectiveness of behavioral treatment on end-of-treatment (EOT) abstinence outcomes. Furthermore, we aim to assess these baseline characteristics as predictors of abstinence, while controlling for both behavioral treatment and pharmacotherapy. By identifying factors that may influence the efficacy of cessation interventions, this analysis seeks to inform targeted treatment strategies to enhance smoking cessation outcomes among individuals with MDD.     
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
@@ -35,6 +44,9 @@ library(gridExtra)
 library(ggpubr)
 library(patchwork)
 library(e1071)
+library(corrplot)
+library(L0Learn)
+library(MASS)
 ```
 
 ```{r}
@@ -52,13 +64,15 @@ data <- read.csv("project2.csv")
 
 # Methods
 
-The data in this analysis is a collaboration with Dr. George Papandonatos from a 2 x 2 factorial, randomized, placebo-controlled study examining the efficacy and safety of behavioral activation for smoking cessation (BASC) and varenicline in treating tobacco dependence among adults with current or past major depressive disorder (MDD). Our sample population consists of 300 adults smokers with or previously with MDD. Patients were randomly assigned to either behavioral activation for smoking cessation (BASC) or standard behavioral treatment (ST) and either varenicline or placebo groups. Randomization was stratified by clinical site, sex, and level of depressive symptoms to ensure balanced representation across these factors. The data also records patients' smoking cessation outcomes and relevant baseline characteristics. Key variables include smoking abstinence status, demographic characteristics (sex, age, income, education), their smoking behaviors (cigarettes per day, time to first cigarette after getting up, nicotine dependence score), and their psychiatric measures (MDD status, anhedonia score, other diagnoses, and antidepressant usage). Using this data, our analysis aims to identify baseline variables as moderators of the treatment effects on end-of-treatment (EOT) abstinence and as predictors of smoking cessation, controlling for behavioral treatment and pharmacotherapy.
+The data in this analysis is a collaboration with Dr. George Papandonatos from a 2 x 2 factorial, randomized, placebo-controlled study examining the efficacy and safety of behavioral activation for smoking cessation (BASC) and varenicline in treating tobacco dependence among adults with current or past major depressive disorder (MDD). Our sample population consists of 300 adults smokers with or previously with MDD. Patients were randomly assigned to either behavioral activation for smoking cessation (BASC) or standard behavioral treatment (ST) and either varenicline or placebo groups. Randomization was stratified by clinical site, sex, and level of depressive symptoms to ensure balanced representation across these factors. The data also records patients' smoking cessation outcomes at week 27 follow-up and relevant baseline characteristics. Key variables include smoking abstinence status (outcome), demographic characteristics (sex, age, income, education), their smoking behaviors (cigarettes per day, time to first cigarette after getting up, nicotine dependence score), and their psychiatric measures (MDD status, anhedonia score, other diagnoses, and antidepressant usage). 
+
+Using this data, our analysis aims to identify baseline variables as moderators of the behavioral treatment effects on end-of-treatment (EOT) abstinence and as predictors of smoking cessation, controlling for behavioral treatment and pharmacotherapy. Lasso regression will be applied to identify significant baseline characteristics and their interaction terms with the treatment, enable us to identify significant predictors and potential moderators on the EOT abstinence for people with MDD.
 
 ## Data Preprocessing
 
-To prepare the data for analysis, we firstly convert all categorical variables to factor and for socioeconomic factors (income and education) with ordinal levels, we recoded levels in order to improve readability and interpretability. In addition, we generate a new treatment variables to capture the four distinct intervention groups formed by the 2x2 factorial design, including `ST + placebo`, `ST + varenicline`, `BASC + placebo`, and `BASC + varenicline.` This new treatment variable was set to reference `ST + placebo` for comparison among groups. Additionally, we combined race and ethnicity indicators into a single race variable with categories including "Black," "Hispanic," "Non-Hispanic White," "Mixed Race," and "Unknown."
+To prepare the data for analysis, we firstly convert all categorical variables to factor and for socioeconomic factors (income and education) with ordinal levels, we recoded levels in order to improve readability and interpretability. In addition, we generate a new treatment variables to capture the four distinct intervention groups formed by the 2x2 factorial design, including `ST + placebo`, `ST + varenicline`, `BASC + placebo`, and `BASC + varenicline.` This new treatment variable was set to reference `ST + placebo` for comparison among groups. Additionally, we combined race and ethnicity indicators into a single race variable with categories including Black, Hispanic, Non-Hispanic White, Mixed Race, and Unknown.
 
-The data also contains various levels of missingness across several variables presented in `Table 1.` Nicotine Metabolism Ratio (`NMR`) has the highest missingness rate, with 7% of observations missing. The FTCD score at baseline (`ftcd_score`) has the lowest missing rate, 0.33%, with only one patient missing information on this variable. Given the limited sample size of this data, we prefer to maintain as many observations as possible in our analysis. Thus, to address the missingness, we applied a multiple imputation approach using the `mice()` function from the mice package in R which provides plausible values for all missing entries across five imputed datasets.
+The data also contains various levels of missingness across several variables presented in `Table 1.` Nicotine Metabolism Ratio (`NMR`) has the highest missingness rate, with 7% of observations missing. The FTCD score at baseline (`ftcd_score`) has the lowest missing rate, 0.33%, with only one patient missing information on this variable. Given the limited sample size of this data, we prefer to maintain as many observations as possible in our analysis. Thus, to address the missingness, we applied a multiple imputation approach using the `mice()` function from the mice package in R before taking data into the primary analysis which provides plausible values for all missing entries across five imputed datasets.
 
 
 ```{r}
@@ -125,7 +139,7 @@ missingness_df <- averaged_data_factor %>%
            Missing_Percentage = paste(round((Missing_Count / Total_Count) * 100, 2), "%")) %>%
     arrange(desc(Missing_Percentage)) %>% 
   filter(Missing_Count != 0) %>%
-  select(-Total_Count)
+  dplyr::select(-Total_Count)
 
 colnames(missingness_df) <- c("Variable", "Missing Count", "Missing Percentage")
 missingness_df %>%
@@ -135,9 +149,9 @@ missingness_df %>%
 
 ## Data Exploration and Transformation
 
-Before conducting the primary analysis, we performed exploratory data analysis (EDA) to examine baseline characteristics, assess data distributions, and identify potential relationships within the dataset.
+To investigate potential interactions between baseline characteristics and treatment assignment on end-of-treatment (EOT) abstinence, we examined the distribution of each baseline variable across treatment groups and abstinence outcomes.  
 
-For categorical variables, we plot bar charts to show patterns across treatment groups and abstinence groups shown in `Figure 1` and `Figure 2.` Income in `Figure 1` exhibits differences among groups and abstinence outcomes. For example, participants with income less than $20,000 are less likely to stop smoking in both the `ST + placebo` and `BASC + varenicline` groups that more people would still continue to smoke at the week 27 follow-up. Even in the `BASC + placebo` group, no patients stop smoking at week 27. However, this pattern reverses in the `ST + varenicline` group that lower-income individuals show a relatively higher likelihood of smoking abstinence. That is, the combination of standard treatment with varenicline may have a greater impact on smoking cessation for lower-income participants. This reversal pattern suggests that income level might be a potential moderator of the treatment effectiveness on the EOT abstinence among people with MDD. 
+For categorical variables, we plot bar charts to show patterns across treatment groups and abstinence groups shown in `Figure 1` and `Figure 2.` Income in `Figure 1` exhibits differences among groups and abstinence outcomes. For example, participants with income less than $20,000 are less likely to stop smoking in both the `ST + placebo` and `BASC + varenicline` groups that more people would still continue to smoke at the week 27 follow-up. Even in the `BASC + placebo` group, no patients stop smoking at week 27. However, this pattern reverses in the `ST + varenicline` group that lower-income individuals show a relatively higher likelihood of smoking abstinence. That is, the combination of standard treatment with varenicline may have a greater impact on smoking cessation for lower-income participants. This reversal pattern suggests that income level might be a potential moderator of the behavioral treatment effectiveness on the EOT abstinence among people with MDD.
 
 ```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
 income_stackplot <- ggplot(averaged_data_factor, aes(x = abst, fill = inc)) +
@@ -240,6 +254,10 @@ combined_plot_racementhol <- combined_plot_racementhol & theme(plot.margin = mar
 combined_plot_racementhol
 ```
 
+We also examine the distribution of continuous variables by their treatment group and outcome values shown in `Figure 3` and `Figure 4`. Among all continuous variables, age, FTCD score, NMR, and BDI score exhibit different distribution among treatment groups and abstinence status at week 27 follow-up.
+
+Seeing `Figure 3`, higher-middle age people (50-60 years) show lower abstinence rate in the `ST + placebo,` `BASC + placebo,` and `BASC + varenicline` groups while they exhibit higher abstinence rate in the `ST + varenicline` treatment. This indicates that the combination of varenicline and ST might be relatively more effective for helping older individuals quit smoking. Moreover, younger participants present higher abstinence rate in the `BASC + placebo` group while show more challenges of stop smoking with the other treatment. In addition, participants with more nicotine dependence (higher FTCD score) exhibit a significantly higher non-abstinence rate in the `ST + placebo` group while this pattern is mitigated in the other three treatment groups. Even in the `ST + varenicline` group, they show much larger abstinence rate at week 27 follow-up. Moreover, participants with relatively low FTCD score present lower abstinence rate in the `ST + varenicline` group while show much higher likelihood of achieving smoking cessation in the other three treatment groups. These findings suggest a potential age-treatment and FTCD score-treatment interaction terms that age and FTCD score might be predictors and moderators of the treatment effect on the EOT abstinence.
+
 ```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
 ftcd_score_stackplot <- ggplot(averaged_data_factor, aes(x = ftcd_score, fill = abst)) +
   geom_density(alpha = 0.5) +
@@ -276,8 +294,8 @@ age_stackplot <- ggplot(averaged_data_factor, aes(x = age_ps, fill = abst)) +
         legend.position = "bottom",
         strip.text = element_text(size = 6))
 
-combined_plot_ftcdage <- (wrap_elements(panel = ftcd_score_stackplot + theme(legend.position = "bottom")) /
-                            wrap_elements(panel = age_stackplot + theme(legend.position = "bottom"))) +
+combined_plot_ftcdage <- (wrap_elements(panel = age_stackplot + theme(legend.position = "bottom")) /
+                            wrap_elements(panel = ftcd_score_stackplot + theme(legend.position = "bottom"))) +
   plot_layout(ncol = 2, guides = 'collect') +
   plot_annotation(title = "Figure 3: Baseline Characteristics by Abstinence Status and Treatment Group (Continuous 1)",
                   theme = theme(plot.title = element_text(size = 8, hjust = 0.5))) 
@@ -287,6 +305,8 @@ combined_plot_ftcdage <- combined_plot_ftcdage & theme(plot.margin = margin(10, 
 
 combined_plot_ftcdage
 ```
+
+Seeing `Figure 4`, the distribution of NMR is skewed towards participants with higher nicotine metabolism ratio (NMR) across all groups. In the two placebo groups, participants with lower NMR are more likely to quit smoking at week 27 follow-up while this gap is less pronounced in the two varenicline groups. Moreover, participants with lower BDI scores (less severe depressive symptoms) are more likely to stop smoking in the `ST + placebo` and `BASC + varenicline` groups while people in these two groups with middle level BDI scores are less likely to stop smoking. However, in the `BASC + placebo` and `ST + varenicline` groups, participants show similar distribution regardless of their depressive severity, suggesting the complex interacting relationship between BDI score and the combination of behavioral and pharmacological treatments. These findings suggest that both NMR and BDI scores may interact with treatment type, influencing smoking cessation outcomes.
 
 ```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
 NMR_stackplot <- ggplot(averaged_data_factor, aes(x = NMR, fill = abst)) +
@@ -335,36 +355,34 @@ combined_plot_NMRbdi <- combined_plot_NMRbdi & theme(plot.margin = margin(10, 10
 combined_plot_NMRbdi
 ```
 
-```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
-# # check continuous variable distribution
-# par(mfrow = c(2, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 4, 0))
-# hist(averaged_data_factor$hedonsum_n_pq1, main = "", xlab = "hedonsum_n_pq1", 
-#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
-# hist(averaged_data_factor$hedonsum_y_pq1, main = "", xlab = "hedonsum_y_pq1", 
-#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
-# hist(averaged_data_factor$shaps_score_pq1, main = "", xlab = "shaps_score_pq1", 
-#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
-# hist(averaged_data_factor$NMR, main = "", xlab = "NMR", 
-#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
-# mtext("Figure : Distribution of Skewed Variables (Before Transformation)", outer = TRUE, cex = 0.8, font = 1)
+Additionally, examining the correlation among continuous variables, we observed that most variables show low to moderate correlations with each other, with both positive and negative relationship present.
 
+```{r, out.width = "80%", fig.align='center'}
+# create a correlation matrix among environmental condition factors
+cor_matrix <- cor(averaged_data_factor[, c(5, 12, 14, 15, 16, 17, 18, 19, 23, 25)], use = "complete.obs")
+
+# correlation plot of environmental condition factors
+corrplot(cor_matrix, method = "color", type = "lower", 
+         tl.col = "black", tl.cex = 0.8, addCoef.col = "black",
+         number.cex = 0.7, col = colorRampPalette(c("steelblue", "white", "steelblue"))(200))
+title("Figure 3: Correlation Plot among Environmental Condition Characteristics", 
+      cex.main = 0.9, line = 3) 
+```
+
+Next, to address skewness in several variables, we applied specific transformations based on the distributional characteristics of each variable (transformations were performed after the imputation step). Among all continuous variables, `hedonsum_n_pq1`, `hedonsum_y_pq1`, `shaps_score_pq1`, and `NMR` exhibit right skewness over distribution. `Table 2` summarizes the skewness value of these variables before and after transformation.
+
+For the two pleasurable events scale variables, `hedonsum_n_pq1` and `hedonsum_y_pq1`, we applied a square root transformation to reduce their high positive skewness values (1.34 and 1.39, respectively). This transformation brought their skewness close to zero (-0.06 and 0.06, respectively), resulting a more symmetric distribution. 
+
+Additionally, since `shaps_score_pq1` contains nearly 50% zero entries and it exhibits high positive skewness value 1.71,  we explored several transformations, including log, square root, and inverse hyperbolic sine (`asinh()`). The inverse hyperbolic sine transformation produced the lowest skewness (0.52), making it the most suitable choice for this variable. 
+
+Finally, we applied a log transformation on NMR which presents the highest skewness value before transformation (1.92). The log transformation successfully reduced the skewness to a nearly symmetric value. 
+```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
 # Take transformation
 averaged_data_factor_transformed <- averaged_data_factor
 averaged_data_factor_transformed$shaps_score_pq1 <- asinh(averaged_data_factor$shaps_score_pq1)
 averaged_data_factor_transformed$hedonsum_n_pq1 <- sqrt(averaged_data_factor$hedonsum_n_pq1)
 averaged_data_factor_transformed$hedonsum_y_pq1 <- sqrt(averaged_data_factor$hedonsum_y_pq1)
 averaged_data_factor_transformed$NMR <- log(averaged_data_factor$NMR)
-
-# par(mfrow = c(2, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 4, 0))
-# hist(averaged_data_factor_transformed$hedonsum_n_pq1, main = "", xlab = "hedonsum_n_pq1", 
-#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
-# hist(averaged_data_factor_transformed$hedonsum_y_pq1, main = "", xlab = "hedonsum_y_pq1", 
-#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
-# hist(averaged_data_factor_transformed$shaps_score_pq1, main = "", xlab = "shaps_score_pq1", 
-#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
-# hist(averaged_data_factor_transformed$NMR, main = "", xlab = "NMR", 
-#      col = "lightblue", breaks = 15, cex.main = 1, cex.lab = 1, cex.axis = 0.8, font.main = 1)
-# mtext("Figure : Distribution of Skewed Variables (After Transformation)", outer = TRUE, cex = 0.8, font = 1)
 
 skewness_df <- data.frame(Variable = c("hedonsum_n_pq1", "hedonsum_y_pq1", "shaps_score_pq1", "NMR"),
                           transformation = c("Square Root Transformation",
@@ -393,19 +411,18 @@ skewness_df %>%
 ```
 
 
-## Data Preprocessing
-
 # Results
 
-`Table 1` presents an overall summary statistics of patients' baseline characteristics by their behavioral and pharmacological treatment assignment. Since our study is a $2 \times 2$, factorial, randomized, placebo-controlled trial, patients are randomly assigned to either behavioral activation for smoking cessation group (BASC) or standard behavioral treatment group (ST) and either varenicline or placebo blister pack. Patients can be categorized into four treatment arm groups: BASC + placebo, BASC + varenicline, ST + placebo, and ST + varenicline. Seeing from `Table 1`, the two placebo groups both have 68 obervations while the two varenicline groups both have 83 observations. 
+Before conducting the primary analysis, we performed exploratory data analysis (EDA) to examine baseline characteristics, assess data distributions, and identify potential relationships within the dataset.
 
-Most variables are evenly distributed across the four treatment arms, which reflects successful randomization in this factorial trial. However, a few key factors, such as socioeconomic indicators (income and education) and specific mental health variables (MDD status, DSM-5 diagnoses), exhibit slight variations that may influence outcomes. Notably, treatment arms with varenicline show higher abstinence rates than placebo groups, suggesting the potential efficacy of this pharmacotherapy in combination with behavioral interventions. While many baseline characteristics are evenly distributed across groups, some may still function as moderators, potentially interacting with treatment assignment to affect abstinence success.
+`Table 1` presents an overall summary statistics of patients' baseline characteristics by their behavioral and pharmacological treatment assignment. Since our study is a $2 \times 2$, factorial, randomized, placebo-controlled trial, patients are randomly assigned to either behavioral activation for smoking cessation group (BASC) or standard behavioral treatment group (ST) and either varenicline or placebo blister pack. Patients can be categorized into four treatment arm groups: BASC + placebo, BASC + varenicline, ST + placebo, and ST + varenicline. Seeing from `Table 1`, the two placebo groups both have 68 obervations while the two varenicline groups have 83 and 81 observations, respectively. 
 
+Most variables are evenly distributed across the four treatment arms, which reflects successful randomization in this factorial trial. However, a few key factors, such as socioeconomic indicators (income and education) and specific mental health variables (MDD status, DSM-5 diagnoses), exhibit slight variations that may influence outcomes. Notably, treatment arms with varenicline show higher abstinence rates than placebo groups, suggesting the potential efficacy of this pharmacotherapy in combination with behavioral interventions. While many baseline characteristics are evenly distributed across groups, some may still function as moderators, potentially interacting with treatment assignment to affect abstinence success. In addition, only one observation falls into the Grade School level in the education variable. To ensure the appropriate representation of categories, we combined the grade school level with the next level, some high school, during the regression analysis. This adjustment ensures sufficient sample sizes across categories when we split the data. 
 
 ```{r}
 # create the summary table
 summary_table <- averaged_data_factor %>%
-  select(-c("id", "Var", "BA", "Black", "Hisp", "NHW")) %>%
+  dplyr::select(-c("id", "Var", "BA", "Black", "Hisp", "NHW")) %>%
   tbl_summary(by = trt, label = list(abst ~ "Smoking abstinence",
                                      race ~ "Race",
                                      age_ps ~ "Age",
@@ -448,6 +465,11 @@ summary_table %>%
   column_spec(6, width = "2cm") %>%
   row_spec(0, bold = TRUE, font_size = 7)
 ```
+
+To analyze the impact of behavioral treatment on end-of-treatment abstinence and examine the moderating role of baseline characteristics, we selected Lasso regression as our primary model. Lasso was chosen for its ability to perform both variable selection and regularization, making it particularly suited for our study, which involves numerous baseline predictors and interaction terms. By applying an L1 penalty, Lasso shrinks less relevant coefficients to zero, effectively selecting a subset of the most influential predictors and interactions. 
+
+As mentioned earlier, we performed multiple imputation using `mice()` function to generate five different imputed data to address missingness. To account for skewness in the data, we then applied the corresponding transformations shown in `Table 2` to the skewed variables in each of the five imputed datasets. Each imputed dataset was split into a 70% training set and a 30% test set, stratified by treatment group using the `createDataPartition()` function in the `caret` package. Lasso regression was then applied to each training set using `cv.glmnet()` with a design matrix that included all baseline characteristics and their interactions with treatment. To maintain the same distribution of treatment group across each cross-validation folds in lasso regression, we created custom fold assignments by treatment level and specified these assignments in the foldid argument. During cross-validation, we identified the optimal regularization parameter, `lambda.min`, which minimized the cross-validated error and extract the coefficient estimates for each lasso model at this optimal lambda value. Finally, we averaged the coefficient estimates across all five Lasso models to obtain the final pooled estimates present in `Table 4` and `Table 5`.
+
 
 ```{r}
 # set working directory
@@ -506,6 +528,9 @@ new_data <- new_data %>%
                            "$35,001-50,000", "$50,001-75,000", "More than $75,000"),
          edu = fct_relevel(edu, "Grade School", "Some high school", "High school graduate or GED",
                            "Some college/technical school", "College graduate"))
+
+new_data$edu <- recode(new_data$edu, "Grade School" = "Some high school & Grade School")
+new_data$edu <- recode(new_data$edu, "Some high school" = "Some high school & Grade School")
 ```
 
 ```{r}
@@ -597,6 +622,28 @@ wide_format_coefficients <- Reduce(function(x, y) merge(x, y, by = "Variable", a
 wide_format_coefficients$Pooled_Estimate <- rowMeans(
   wide_format_coefficients[ , grep("Estimates_", names(wide_format_coefficients))], 
   na.rm = TRUE)
+
+coef_table <- wide_format_coefficients %>%
+  filter(Pooled_Estimate != 0) %>%
+  dplyr::select(c("Variable", "Pooled_Estimate"))
+
+colnames(coef_table)[2] <- "Estimate"
+
+coef_table_maineffect <- coef_table[1:8, ]
+coef_table_interaction <- coef_table[9:28, ]
+
+coef_table_interaction <- coef_table_interaction %>%
+  separate(Variable, into = c("Treatment", "Variable"), sep = ":", remove = FALSE) %>%
+  arrange(Variable, Treatment) %>%
+  dplyr::select(Treatment, Variable, Estimate)
+
+coef_table_maineffect %>%
+  kable(booktabs = TRUE, caption = "Main Effect Estimates") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+
+coef_table_interaction %>%
+  kable(booktabs = TRUE, caption = "Interaction Estimates") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
 ```
 
 ```{r}
@@ -624,7 +671,7 @@ long_data_matrix_train <- model.matrix(abst ~ trt * (age_ps + sex_ps + inc + edu
                                                  bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 +
                                                  hedonsum_y_pq1 + shaps_score_pq1 + otherdiag + antidepmed +
                                                  mde_curr + NMR + Only.Menthol + readiness + race),
-                                 data = long_data_train)
+                                       data = long_data_train)
 
 # convert the design matrix to a data frame
 long_data_trainset <- as.data.frame(long_data_matrix_train)
@@ -684,7 +731,31 @@ plot(auc_result_test, main = "Test Data", font.main = 1, cex.main = 0.8, cex.lab
 text(0.3, 0.2, paste("AUC =", round(auc(auc_result_test), 3)), col = "blue", cex = 0.7)
 ```
 
+```{r, out.width = "70%", fig.pos = "H", fig.align = "center", fig.height = 4}
+long_data_trainset <- long_data_trainset %>%
+  mutate(abst_num = as.numeric(as.character(long_data_train$abst)))
+long_data_testset <- long_data_testset %>%
+  mutate(abst_num = as.numeric(as.character(long_data_test$abst)))
+
+cal_plot_train <- calibration_plot(data = long_data_trainset, obs = "abst_num", pred = "predicted_prob", title = "Train Data", y_lim = c(0, 1), x_lim=c(0, 1))
+cal_plot_test <- calibration_plot(data = long_data_testset, obs = "abst_num", pred = "predicted_prob", title = "Test Data", y_lim = c(0, 1), x_lim=c(0, 1))
+
+grid.arrange(cal_plot_train$calibration_plot, 
+             cal_plot_test$calibration_plot, ncol = 2,
+             top = text_grob("Figure 4: Calibration Plot Comparison"))
+```
 
 
-## Discussion
 
+# Discussion
+
+
+\newpage
+# Appendix
+
+```{r ref.label = knitr::all_labels()}
+#| echo: true
+#| eval: false
+```
+
+# Reference
