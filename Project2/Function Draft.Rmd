@@ -471,21 +471,22 @@ summary_table %>%
 
 To analyze the impact of behavioral treatment on end-of-treatment abstinence and examine the moderating role of baseline characteristics, we selected Lasso regression as our primary model. Lasso was chosen for its ability to perform both variable selection and regularization, making it particularly suited for our study, which involves numerous baseline predictors and interaction terms. By applying an L1 penalty, Lasso shrinks less relevant coefficients to zero, effectively selecting a subset of the most influential predictors and interactions. 
 
-As mentioned earlier, we performed multiple imputation using `mice()` function to generate five different imputed data to address missingness. To account for skewness in the data, we then applied the corresponding transformations shown in `Table 2` to the skewed variables in each of the five imputed datasets. Each imputed dataset was split into a 70% training set and a 30% test set, stratified by treatment group using the `createDataPartition()` function in the `caret` package. Lasso regression was then applied to each training set using `cv.glmnet()` with a design matrix that included all baseline characteristics and their interactions with treatment. To maintain the same distribution of treatment group across each cross-validation folds in lasso regression, we created custom fold assignments by treatment level and specified these assignments in the foldid argument. During cross-validation, we identified the optimal regularization parameter, `lambda.min`, which minimized the cross-validated error and extract the coefficient estimates for each lasso model at this optimal lambda value. Finally, we averaged the coefficient estimates across all five Lasso models to obtain the final pooled estimates present in `Table 4` and `Table 5`.
+As mentioned earlier, we performed multiple imputation using `mice()` function to generate five different imputed data to address missingness. To account for skewness in the data, we then applied the corresponding transformations shown in `Table 2` to the skewed variables in each of the five imputed datasets. Each imputed dataset was split into a 70% training set and a 30% test set, stratified by treatment group using the `createDataPartition()` function in the `caret` package. Lasso regression was then applied to each training set using `cv.glmnet()` with a design matrix that included all baseline characteristics and their interactions with the behavioral treatment and pharmacological treatment, respectively. To maintain the same distribution of treatment group across each cross-validation folds in lasso regression, we created custom fold assignments by treatment level and specified these assignments in the `foldid` argument in `cv.glmnet()`. During cross-validation, we identified the optimal regularization parameter, `lambda.min`, which minimized the cross-validated error and extract the coefficient estimates for each lasso model at this optimal lambda value. Finally, we averaged the coefficient estimates across all five Lasso models to obtain the final pooled estimates present in `Table 4`.
+
 
 
 ```{r}
-# set working directory
+# Set working directory
 # Windows
 setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
 
 # Mac
 # setwd("~/Desktop/Fall 2024/PHP 2550/Data/")
 
-# read in data
+# Read in data
 data <- read.csv("project2.csv")
 
-# factor categorical variables
+# Factor categorical variables
 data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
          "Black", "Hisp", "inc", "edu", "ftcd.5.mins", 
          "otherdiag", "antidepmed", "mde_curr", 
@@ -494,59 +495,51 @@ data[, c("abst", "Var", "BA", "sex_ps", "NHW",
                                              "ftcd.5.mins", "otherdiag", "antidepmed", 
                                              "mde_curr", "Only.Menthol")], as.factor)
 
-# generate and recode necessary columns
-new_data <- data %>%
-  mutate(race = as.factor(case_when(Black == 0 & Hisp == 0 & NHW == 0 ~ "Unknown",
-                                    Black == 1 & Hisp == 1 & NHW == 1 ~ "Mixed Race",
-                                    Black == 1 & Hisp == 1 ~ "Mixed Race",
-                                    Black == 1 & NHW == 1 ~ "Mixed Race",
-                                    NHW == 1 & Hisp == 1 ~ "Mixed Race",
-                                    Black == 1 ~ "Black",
-                                    Hisp == 1 ~ "Hispanic",
-                                    NHW == 1 ~ "Non-Hispanic White",
-                                    TRUE ~ "Other")),
-         trt = as.factor(case_when(Var == 1 & BA == 1 ~ "BASC + varenicline",
-                         Var == 0 & BA == 1 ~ "BASC + placebo",
-                         Var == 1 & BA == 0 ~ "ST + varenicline",
-                         Var == 0 & BA == 0 ~ "ST + placebo",
-                         TRUE ~ NA_character_)),
-         inc = fct_recode(as.factor(inc), 
-                          "Less than $20,000" = "1", 
-                          "$20,000-35,000" = "2", 
-                          "$35,001-50,000" = "3", 
-                          "$50,001-75,000" = "4", 
-                          "More than $75,000" = "5"),
-         edu = fct_recode(as.factor(edu), 
-                          "Grade School" = "1", 
-                          "Some high school" = "2", 
-                          "High school graduate or GED" = "3", 
-                          "Some college/technical school" = "4", 
-                          "College graduate" = "5"))
+# Multiple imputation with m = 5
+new_data <- data[, -1]
+imputed_data <- mice(new_data, m = 5, method = 'pmm', seed = 2550, printFlag = FALSE)
 
-new_data$trt <- relevel(factor(new_data$trt), ref = "ST + placebo")
-
-# relevel inc and edu to make them ordinal with correct level
-new_data <- new_data %>%
-  mutate(inc = fct_relevel(inc, "Less than $20,000", "$20,000-35,000", 
-                           "$35,001-50,000", "$50,001-75,000", "More than $75,000"),
-         edu = fct_relevel(edu, "Grade School", "Some high school", "High school graduate or GED",
-                           "Some college/technical school", "College graduate"))
-
-new_data$edu <- recode(new_data$edu, "Grade School" = "Some high school & Grade School")
-new_data$edu <- recode(new_data$edu, "Some high school" = "Some high school & Grade School")
-```
-
-```{r}
-# multiple imputation with m = 5
-imputed_data <- mice(new_data, m = 5, method = 'pmm', maxit = 50, seed = 2550, printFlag = FALSE)
-
-# extract the five imputed datasets to a data list
+# Extract the five imputed datasets into a list
 completed_datasets <- list()
 for (i in 1:5) {
   completed_datasets[[i]] <- complete(imputed_data, i)
 }
 
 for (i in 1:length(completed_datasets)) {
+  completed_datasets[[i]] <- completed_datasets[[i]] %>%
+    mutate(trt = as.factor(case_when(Var == 1 & BA == 1 ~ "BASC + varenicline",
+                                     Var == 0 & BA == 1 ~ "BASC + placebo",
+                                     Var == 1 & BA == 0 ~ "ST + varenicline",
+                                     Var == 0 & BA == 0 ~ "ST + placebo",
+                                     TRUE ~ NA_character_)),
+           race = as.factor(case_when(Black == 0 & Hisp == 0 & NHW == 0 ~ "Unknown",
+                                      Black == 1 & Hisp == 1 & NHW == 1 ~ "Mixed Race",
+                                      Black == 1 & Hisp == 1 ~ "Mixed Race",
+                                      Black == 1 & NHW == 1 ~ "Mixed Race",
+                                      NHW == 1 & Hisp == 1 ~ "Mixed Race",
+                                      Black == 1 ~ "Black",
+                                      Hisp == 1 ~ "Hispanic",
+                                      NHW == 1 ~ "Non-Hispanic White",
+                                      TRUE ~ "Other")),
+           inc = fct_recode(as.factor(inc), 
+                            "Less than $20,000" = "1", 
+                            "$20,000-35,000" = "2", 
+                            "$35,001-50,000" = "3", 
+                            "$50,001-75,000" = "4", 
+                            "More than $75,000" = "5"),
+           edu = fct_collapse(as.factor(edu),
+                             "Some high school & Grade School" = c("1", "2"),
+                             "High school graduate or GED" = "3",
+                             "Some college/technical school" = "4",
+                             "College graduate" = "5")) %>%
+    mutate(inc = fct_relevel(inc, "Less than $20,000", "$20,000-35,000", 
+                             "$35,001-50,000", "$50,001-75,000", "More than $75,000"),
+           edu = fct_relevel(edu, "Some high school & Grade School", 
+                             "High school graduate or GED", 
+                             "Some college/technical school", "College graduate")) %>%
+    mutate(trt = relevel(factor(trt), ref = "ST + placebo"))
+
+  # Apply transformations
   completed_datasets[[i]]$shaps_score_pq1 <- asinh(completed_datasets[[i]]$shaps_score_pq1)
   completed_datasets[[i]]$hedonsum_n_pq1 <- sqrt(completed_datasets[[i]]$hedonsum_n_pq1)
   completed_datasets[[i]]$hedonsum_y_pq1 <- sqrt(completed_datasets[[i]]$hedonsum_y_pq1)
@@ -554,22 +547,21 @@ for (i in 1:length(completed_datasets)) {
 }
 ```
 
+
 ```{r}
-# lasso model function
-lasso_model_function <- function(data_list) {
+lasso_model_function_moderator <- function(data_list) {
   lasso_coef <- list()
   
   for (index in seq_along(data_list)) {
-    # extract data
     data <- data_list[[index]]
     
-    # split train and test sets
+    # Split train and test sets
     set.seed(2550)
-    train_index <- createDataPartition(new_data$trt, p = 0.7, list = FALSE)
+    train_index <- createDataPartition(data$trt, p = 0.7, list = FALSE)
     train_data <- data[train_index, ]
     test_data <- data[-train_index, ]
     
-    # create fold ids for cross-validation
+    # Create fold IDs for cross-validation
     train_data$foldid <- NA
     for (trt_level in unique(train_data$trt)) {
       treatment_data <- train_data[train_data$trt == trt_level, ]
@@ -577,7 +569,7 @@ lasso_model_function <- function(data_list) {
       train_data$foldid[train_data$trt == trt_level] <- fold_ids
     }
     
-    # define model matrix
+    # Define model matrix
     X <- model.matrix(abst ~ BA * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
                                     bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
                                     shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
@@ -588,70 +580,77 @@ lasso_model_function <- function(data_list) {
                                     readiness + race), data = train_data)[, -1]
     y <- train_data$abst
     
-    # fit lasso with cross-validation using custom foldid
-    cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, foldid = train_data$foldid)
+    # Fit lasso with cross-validation using custom foldid
+    cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, nfolds = 10, foldid = train_data$foldid)
     best_lambda <- cv_model$lambda.min
     
-    # fit the final lasso model using the best lambda
+    # Fit final lasso model using best lambda
     lasso_model <- glmnet(X, y, family = "binomial", alpha = 1, lambda = best_lambda)
     
-    # extract coefficients and store in a data frame
+    # Extract coefficients and store in a data frame
     coefficients <- as.data.frame(as.matrix(coef(lasso_model)))
     coefficients$Variable <- rownames(coefficients)
     rownames(coefficients) <- NULL
     colnames(coefficients)[1] <- "Estimates"
-    coefficients <- coefficients[, c("Variable", "Estimates", setdiff(names(coefficients), c("Estimates", "Variable")))]
     
-    # store coef results in list
+    # Store coefficients in list
     lasso_coef[[index]] <- coefficients
   }
   
-  # return the list of coefficients for all imputed datasets
+  # Return list of coefficients for all imputed datasets
   return(lasso_coef)
 }
 
-# run the lasso model function on the list of imputed datasets
-lasso_coef_results <- lasso_model_function(completed_datasets)
+# Run the lasso model function
+lasso_coef_results_moderator <- lasso_model_function_moderator(completed_datasets)
 ```
 
 ```{r}
-# generate a coefficient data frame extracting from five lasso models 
-imputed_coefs_list <- list()
-
-for (i in seq_along(lasso_coef_results)) {
-  coefs <- lasso_coef_results[[i]]
+# Generate combined coefficient data frame
+imputed_coefs_list_moderator <- list()
+for (i in seq_along(lasso_coef_results_moderator)) {
+  coefs <- lasso_coef_results_moderator[[i]]
   colnames(coefs)[colnames(coefs) == "Estimates"] <- paste0("Estimates_", i)
-  imputed_coefs_list[[i]] <- coefs[, c("Variable", paste0("Estimates_", i))]
+  imputed_coefs_list_moderator[[i]] <- coefs[, c("Variable", paste0("Estimates_", i))]
 }
 
-# combine all imputed datasets' coefficients by column and calculate pooled estimates
-wide_format_coefficients <- Reduce(function(x, y) merge(x, y, by = "Variable", all = TRUE), imputed_coefs_list)
-wide_format_coefficients$Pooled_Estimate <- rowMeans(
-  wide_format_coefficients[ , grep("Estimates_", names(wide_format_coefficients))], 
-  na.rm = TRUE)
+# Combine and pool estimates
+wide_format_coefficients_moderator <- Reduce(function(x, y) merge(x, y, by = "Variable", all = TRUE), imputed_coefs_list_moderator)
+wide_format_coefficients_moderator$Pooled_Estimate <- rowMeans(wide_format_coefficients_moderator[ , grep("Estimates_", names(wide_format_coefficients_moderator))], na.rm = TRUE)
 
-coef_table <- wide_format_coefficients %>%
+coef_table_moderator <- wide_format_coefficients_moderator %>%
   filter(Pooled_Estimate != 0) %>%
   dplyr::select(c("Variable", "Pooled_Estimate"))
 
-colnames(coef_table)[2] <- "Estimate"
+colnames(coef_table_moderator)[2] <- "Estimate"
+coef_table_moderator$exp_estimate <- exp(coef_table_moderator$Estimate)
+```
 
-coef_table_maineffect <- coef_table[1:8, ]
-coef_table_interaction <- coef_table[9:28, ]
+```{r}
+# Order main effects and interactions
+main_effects <- coef_table_moderator[!grepl(":", coef_table_moderator$Variable), ]
+interaction_terms <- coef_table_moderator[grepl(":", coef_table_moderator$Variable), ]
+age_interaction <- coef_table_moderator[coef_table_moderator$Variable == "age_ps:Var1", ]
 
-coef_table_interaction <- coef_table_interaction %>%
-  separate(Variable, into = c("Treatment", "Variable"), sep = ":", remove = FALSE) %>%
-  arrange(Variable, Treatment) %>%
-  dplyr::select(Treatment, Variable, Estimate)
+# Combine for final ordered result
+ordered_model_results <- rbind(main_effects, interaction_terms)[-7,]
+ordered_model_results <- rbind(ordered_model_results, age_interaction)
+rownames(ordered_model_results) <- NULL
+colnames(ordered_model_results)[3] <- "Exponential Estimate"
 
-coef_table_maineffect %>%
-  kable(booktabs = TRUE, caption = "Main Effect Estimates") %>%
-  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
-
-coef_table_interaction %>%
-  kable(booktabs = TRUE, caption = "Interaction Estimates") %>%
+# Display results
+ordered_model_results %>%
+  kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate") %>%
   kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
 ```
+
+Observing the main effects variables in `Table 4`, the `ftcd_score` has a coefficient estimate of -0.1217, suggesting that for each one-unit increase in FTCD score, the odds of abstinence for people with MDD would be approximately 0.8854. That is, more severe nicotine dependence might lead to a lower probability of abstinence after treatment for people with MDD, holding other factors constant. `mde_curr1` which is an indicator of the participants' MDD status, has an estimate of -0.2054. This indicates that current MDD participants might have lower likelihood of abstinence after treatment adjusting for their treatment groups with the odds of smoking cessation decreases by around $1 - 0.8142 = 18.58%$. The log-transformed Nicotine Metabolism Ratio (NMR) has an estimate of 0.2363, suggesting that for each unit increase in log(NMR), the odds of abstinence rise by about 26.7%, holding other factors constant. That is, faster nicotine metabolism would be associated with higher odds of abstinence, adjusting for their treatment groups and other covariates. 
+
+The non-Hispanic White level in the race variable show an estimate of 0.3216, indicating that the odds of abstinence for Non-Hispanic White people with MDD is 37.93% higher than that for other racial groups. Notably, there is also an interaction term between BASC and the racial group. This interaction suggests that Non-Hispanic White people using the BASC treatment might experience a small additional increase in the odds of abstinence compared to people in other racial groups. Thus, race variable not only functions as predictor but also as a moderator since the treatment effect of BASC on smoking cessation varies among racial groups.
+
+This is same for the indicator of exclusive mentholated cigarette user, `Only.Menthol`, and the income characteristics, `inc`. The interaction term between BASC treatment and `Only.Menthol` displays an estimate of -0.3842, suggesting that for MDD people receiving the BASC treatment, those who are mentholated cigarette user would have a 31.81% of decrease in the odds of abstinence compared to those who are not mentholated cigarette user. Additionally, the interaction term between BASC treatment and income ($35,001-50,000) has an estimate of 0.0124. This suggests that for MDD people receiving the BASC treatment, those who have income ranging from \$35,000 to \$50,000 would experience approximately a 1.25% increase in the odds of abstinence compared to individuals with different income levels. 
+
+The model also has several interaction term with the indicator of varenicline treatment (Var) which identify potential moderators for the pharmacological treatment on the EOT abstinence for people with MDD. Specifically, cigarette reward value (`crv_total_pq1`), education level (level: high school graduate or GED), race (level: mixed race), sex, and age serve as potential moderators. These interactions suggest that the effectiveness of varenicline may vary depending on these baseline characteristics, highlighting the nuanced impact of pharmacological treatment across different demographic and behavioral profiles.
 
 ```{r}
 long_data_train <- data.frame()
@@ -659,11 +658,11 @@ long_data_test <- data.frame()
 
 # get stratified training index based on treatment group
 set.seed(2550)
-train_index <- createDataPartition(new_data$trt, p = 0.7, list = FALSE)
+train_index <- createDataPartition(completed_datasets[[1]]$trt, p = 0.7, list = FALSE)
 
 # generate long format of train and test dataframe from the five imputed datasets
-for (i in seq_len(imputed_data$m)) {
-  imputed_dataset <- complete(imputed_data, i)
+for (i in 1:length(completed_datasets)) {
+  imputed_dataset <- completed_datasets[[i]]
   train_set <- imputed_dataset[train_index, ]
   test_set <- imputed_dataset[-train_index, ]
   
@@ -677,8 +676,8 @@ for (i in seq_len(imputed_data$m)) {
 long_data_matrix_train <- model.matrix(abst ~ BA * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
                                     bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
                                     shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
-                                    readiness + race) +
-                                      Var * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    readiness + race)  +
+                             Var * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
                                     bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
                                     shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
                                     readiness + race),
@@ -688,12 +687,12 @@ long_data_matrix_train <- model.matrix(abst ~ BA * (age_ps + sex_ps + inc + edu 
 long_data_trainset <- as.data.frame(long_data_matrix_train)
 
 # extract the intercept from pooled coefficients
-pooled_intercept <- wide_format_coefficients %>%
+pooled_intercept <- wide_format_coefficients_moderator %>%
   filter(Variable == "(Intercept)") %>%
   pull(Pooled_Estimate)
 
 # extract only non-intercept pooled coefficients
-pooled_coefs <- wide_format_coefficients %>%
+pooled_coefs <- wide_format_coefficients_moderator %>%
   filter(Variable != "(Intercept)")
 
 # ensure the predictor variables in the data match those in pooled coefficients
@@ -732,6 +731,10 @@ long_data_testset$log_odds <- pooled_intercept + as.matrix(long_data_testset) %*
 long_data_testset$predicted_prob <- 1 / (1 + exp(-long_data_testset$log_odds))
 ```
 
+We also examine the model's performance using ROC and calibration plots shown in `Figure 6` and `Figure 7`. The prediction values for the train and test sets are calculated using the long format of train and test sets from the five imputed datasets, respectively. Observing `Figure 6`, the ROC curves indicate that our model effectively distinguishes between positive and negative classes. The train set has an AUC of 0.809 while the test test has an AUC of 0.75. Although there is a slight drop in AUC on the test set, the model still shows great discriminative power on unseen data. 
+
+Moreover, observing `Figure 7`, the calibration plot for the training set shows that the model is well-calibrated with lower probability predictions, with points distributed around the diagonal line which indicates the alignment between the predictions and observed values. However, as probabilities increase, slight deviations appear. The test set calibration plot shows more pronounced deviations from the diagonal line. This suggests that while the model’s predictions are reasonably aligned with actual outcomes for the training data, calibration issues are more substantial in the test set, which needs further investigation. 
+
 ```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
 # do roc on train and test sets
 auc_result <- roc(long_data_train$abst, long_data_trainset$predicted_prob)
@@ -745,6 +748,7 @@ text(0.3, 0.2, paste("AUC =", round(auc(auc_result), 3)), col = "blue", cex = 0.
 plot(auc_result_test, main = "Test Data", font.main = 1, cex.main = 0.8, cex.lab = 0.8)
 text(0.3, 0.2, paste("AUC =", round(auc(auc_result_test), 3)), col = "blue", cex = 0.7)
 ```
+
 
 ```{r, out.width = "70%", fig.pos = "H", fig.align = "center", fig.height = 4}
 long_data_trainset <- long_data_trainset %>%
@@ -761,9 +765,15 @@ grid.arrange(cal_plot_train$calibration_plot,
 ```
 
 
-
 # Discussion
 
+Collaborating with the study of smoking cessation for people with MDD led by Dr. George Papandonatos, this study aims to further investigate potential moderators of behavioral treatment (BASC vs. ST) on the EOT abstinence for this group of people and dedicates to identify baseline characteristics as predictors of abstinence, controlling for behavioral treatment and pharmacotherapy. Lasso regression is chosen to perform variable selection that helps to focus on the most influential baseline characteristics and their interaction terms to balance predictivity and interpretability. As predictors, control for treatment and other factors, higher nicotine dependence (higher FTCD score), and current MDD status both associate with lower likelihood of abstinence. Conversely, faster nicotine metabolism (higher NMR in log scale) associates with higher odds of abstinence, adjusting for treatment and other factors. 
+
+The race variable, particularly Non-Hispanic White level, serves as both predictor and moderator of behavioral treatment. Non-Hispanic White people had higher odds of abstinence and they experience more benefits from the BASC treatment. The indicator of menthol cigarette users (`Only.Menthol`) and income also serve as the moderators of behavioral treatment on the EOT abstinence for people with MDD. Specifically, menthol cigarette users treat with BASC face lower abstinence odds compared to non-menthol cigarette users treat with BASC, while in the BASC treatment group, people with income ranging from \$35,001 to \$50,000 benefits more from the BASC treatment compared to people with other levels of income. Additionally, the significant interaction terms with varenicline (Var) also suggest that the effectiveness of pharmacological treatment would vary by cigarette reward value, education level, race, sex, and age. 
+
+The model evaluation using ROC and calibration plots reveals our model's strong discriminative power but raises slight concern regarding calibration on the test set which needs further investigation.
+
+As the original paper states, a limitation of this study is that adherence to both behavioral treatment and pharmacotherapy was low, particular in the BASC-only group. The use of ITT approach under this scenario might underestimate treatment effects due to low adherence. An additional limitation of our analysis is that, although our sample provides a diverse phase of patients with MDD, certain levels within some categorical variables have limited sample sizes. Specifically, as shown in `Table 3`, only one observation falls within the "Grade school" category for the education variable. This limited representation may reduce the statistical power to detect effects for these categories, limiting the generalizibility of our study. Further researches could explore strategies to enhance engagement and adherence and expand data with more balanced underrepresented groups to improve the accuracy and generalizability of our model. A future direction for this study would be to apply a multilevel modeling approach to better understand the influences of both individual and contextual factors on smoking cessation outcomes in individuals with MDD. This approach would allow for the analysis of time-varying and group-level predictoes, such as provider expertise or site-specific support, to assess how these factors interact with individual characteristics to impact abstinence.
 
 \newpage
 # Appendix
