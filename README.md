@@ -31,24 +31,18 @@ The following R version and packages are used in this analysis. Ensure that they
     - **Platform**: x86_64-w64-mingw32/x64 (64-bit)
 
 - **R Packages**: 
-  - tidyverse - 2.0.0
-     - mice - 3.16.0
-     - gt - 0.10.1
-     - gtsummary - 1.7.2
-     - kableExtra - 1.4.0
-     - RColorBrewer - 1.1-3
-     - scico - 1.5.0
-     - caret - 6.0-94
-     - glmnet - 4.1-8
-     - pROC - 1.18.5
-     - predtools - 0.0.3
-     - gridExtra - 2.3
-     - ggpubr - 0.6.0
-     - patchwork - 1.2.0
-     - e1071 - 1.7-14
-     - corrplot - 0.92
-     - L0Learn - 2.1.0
-     - MASS - 7.3-60.0.1
+    - tidyverse - 2.0.0
+    - ggplot2 - 3.5.1
+    - visdat - 0.6.0
+    - gtsummary - 1.7.2
+    - kableExtra - 1.4.0
+    - ggpubr - 0.6.0
+    - gt - 0.10.1
+    - car - 3.1-2
+    - lme4 - 1.1-35.1
+    - lmerTest - 3.1-3
+    - corrplot - 0.92
+    - broom.mixed_0.2.9.5
 
 ## Project 2: Influence of Baseline Characteristics on Smoking Cessation in MDD: A Study of Behavioral and Pharmacological Treatment Effects 
 
@@ -80,3 +74,23 @@ Additionally, race emerged as both a predictor and moderator, with Non-Hispanic 
 The following R version and packages are used in this analysis. Ensure that they are installed and loaded to successfully run the code:
 - **R version**: 4.3.1 (2023-06-16)
     - **Platform**: x86_64-w64-mingw32/x64 (64-bit)
+- **R Packages**:
+     - tidyverse - 2.0.0
+     - mice - 3.16.0
+     - gt - 0.10.1
+     - gtsummary - 1.7.2
+     - kableExtra - 1.4.0
+     - RColorBrewer - 1.1-3
+     - scico - 1.5.0
+     - caret - 6.0-94
+     - glmnet - 4.1-8
+     - pROC - 1.18.5
+     - predtools - 0.0.3
+     - gridExtra - 2.3
+     - ggpubr - 0.6.0
+     - patchwork - 1.2.0
+     - e1071 - 1.7-14
+     - corrplot - 0.92
+     - L0Learn - 2.1.0
+     - MASS - 7.3-60.0.1
+
