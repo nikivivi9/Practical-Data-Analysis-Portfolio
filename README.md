@@ -66,9 +66,10 @@ Control for treatment and other factors, as predictors, higher nicotine dependen
 Additionally, race emerged as both a predictor and moderator, with Non-Hispanic White participants showing higher odds of abstinence and a greater benefit from BASC compared to other racial groups. Menthol cigarette use and income level also moderated the effects of BASC, with menthol users experiencing lower abstinence odds and individuals with incomes between \$35,001 and \$50,000 benefiting more from BASC. Furthermore, significant interaction terms with varenicline suggest that the efficacy of pharmacotherapy varies by factors like cigarette reward value, education, race, sex, and age. 
 
 ### Files
-- Folder `Report`:
-     - `Project 1 codebook.rmd`: The Rmarkdown file of this Exploratory Data Analysis report, containing codes and analysis text.
-     - `Project 1 codebook.pdf`: The pdf file of this Exploratory Data Analysis report, including the analysis text, code results, and appendix.
+     - `MDD Smoking Cessation Regression Analysis.Rmd`: The Rmarkdown file of this Regression Analysis report, containing codes and analysis text.
+     - `MDD Smoking Cessation Regression Analysis.pdf`: The pdf file of this Exploratory Data Analysis report, including the analysis text, code results, and appendix.
+     - `references.bib`: Reference list file
+     - `apa-numeric-superscript.csl`: Reference Style csl.
  
 
 The following R version and packages are used in this analysis. Ensure that they are installed and loaded to successfully run the code:
