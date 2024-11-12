@@ -1,5 +1,5 @@
 ---
-title: "Function Draft"
+title: "Influence of Baseline Characteristics on Smoking Cessation in MDD: A Study of Behavioral and Pharmacological Treatment Effects"
 author: "Yingxi Kong"
 output:
   pdf_document
@@ -9,21 +9,21 @@ csl: apa-numeric-superscript.csl
 
 # Abstract
 
-**Background:**
+**Background:** People with Major Depressive Disorder (MDD) are more likely to engage in tobacco use. However, most smoking cessation clinical trials had excluded this group from the enrollment, limiting available information to support smoking cessation for this group. This study, collaborating with Dr. George Papandonatos, aims to evaluates behavioral and pharmacological treatment for smoking cessation in adults with MDD to identify baseline characteristics that may moderate the behavioral treatment or predict smoking cessation outcome.
 
-**Methods:**
+**Methods:** In a 2 × 2 factorial, randomized, placebo-controlled trial, 300 adult smokers with current or past MDD were randomly assigned to either Behavioral Activation for Smoking Cessation (BASC) or standard treatment (ST), combined with either varenicline or placebo. Participants' demographic characteristics, smoking behavior, mental health measurement, and the abstinence outcome at the week 27 follow-up were collected. Lasso regression was employed to identify significant baseline characteristics and potential interaction effects with treatment, controlling for both behavioral and pharmacotherapy assignments.
 
-**Results:**
+**Results:** Findings suggest that as predictors, controlling for treatment groups and other factors, having higher nicotine metabolism ratio and identifying as Non-Hispanic White were associated with higher likelihood of abstinence, while higher nicotine dependence score, higher pleasurable events scale score, and current MDD experience were associated with lower odds of abstinence. Moreover, income, menthol cigarette users indicators, and MDD status serve as moderators of the behavioral treatment effect on the end-of-treatment (EOT) abstinence. 
 
-**Conclusion:**
+**Conclusion:** This study provides insights into how smoking cessation treatment outcomes among adults with MDD interact with baseline characteristics, identifying demographic factors, nicotine dependence, and MDD status as key predictors and moderators. However, variation in treatment adherence and several underrepresented groups could have influenced the estimate of treatment effect. Further research should explore strategies to improve engagement and broaden data collection to achieve better representation of these groups, enhancing the accuracy and generalizability of the findings.
 
 # Introduction
 
-MDD has been one of the most prevalent mental health disorders in the world, with rates that have continued to rise, particularly during the COVID-19 pandemic[@santomauro2021global]. Individuals with MDD are not only at risk for a range of adverse health outcomes but are also more likely to engage in harmful health behaviors, including tobacco use which is one of the most prevalent health-compromising behaviors among people with MDD, with the rate of smoking among individuals with major depressive disorder (MDD) is 2–3 higher than in the general population [@weinberger2020trends]. However, most smoking cessation clinical trials have excluded this important group from trial enrollment [@hitsman2013past], limiting information and suggestion for this group who wants to quit smoking. 
+Major Depressive Disorder (MDD) has been one of the most prevalent mental health disorders in the world, with rates that have continued to rise, particularly during the COVID-19 pandemic[@santomauro2021global]. Individuals with MDD are not only at risk for a range of adverse health outcomes but are also more likely to engage in harmful health behaviors, including tobacco use. The rate of smoking among individuals with MDD is 2–3 times higher than in the general population [@weinberger2020trends]. However, most smoking cessation clinical trials have excluded this important group from the trial enrollment [@hitsman2013past], thereby limiting available information and recommendations to support smoking cessation for this group.
 
-In a recent 2 × 2 factorial, randomized, placebo-controlled trial led by Dr. George Papandonatos, the efficacy and safety of combining behavioral and pharmacological treatment were evaluated among individuals with current or past MDD. Behavioral activation for smoking cessation (BASC), a behavioral treatment designed to enhance engagement in rewarding activities and reduce avoidance behavior, was paired with varenicline, a pharmacotherapy shown to reduce cravings and mitigate nicotine's rewarding effects. The trial included 300 participants and compared BASC to standard treatment (ST) and varenicline to placebo. The results indicated that while varenicline significantly improved abstinence rates compared to placebo, BASC did not outperform ST, suggesting that while pharmacotherapy may provide substantial benefit for smokers with MDD, the behavioral component of cessation treatment may require further refinement.
+A recent randomized, placebo-controlled trial led by Dr. George Papandonatos evaluated the efficacy and safety of combining behavioral and pharmacological treatment for smoking cessation among individuals with current or past MDD. The study involved 300 participants and employed a 2 × 2 factorial design to compare Behavioral Activation for Smoking Cessation (BASC) with standard treatment (ST), and varenicline with placebo. BASC, a behavioral intervention designed to enhance engagement in rewarding activities and reduce avoidance behavior, was paired with varenicline, a pharmacotherapy shown to reduce cravings and mitigate nicotine's rewarding effects. The results indicated that while varenicline significantly improved abstinence rates compared to placebo, BASC did not outperform ST, suggesting that while pharmacotherapy may provide substantial benefits for smokers with MDD, the behavioral component of cessation treatment may require further refinement.
 
-This study is a collaboration with Dr. George Papandonatos, aiming to investigate the potential effect of baseline characteristics on the effectiveness of behavioral treatment on end-of-treatment (EOT) abstinence outcomes. Furthermore, we aim to assess these baseline characteristics as predictors of abstinence, while controlling for both behavioral treatment and pharmacotherapy. By identifying factors that may influence the efficacy of cessation interventions, this analysis seeks to inform targeted treatment strategies to enhance smoking cessation outcomes among individuals with MDD.     
+Collaborating with Dr. George Papandonatos, this study aims to investigate the role of baseline characteristics as potential moderators of the effectiveness of behavioral treatment on end-of-treatment (EOT) abstinence outcomes. Furthermore, we aim to assess these baseline characteristics as predictors of abstinence, while controlling for both behavioral treatment and pharmacotherapy. By identifying factors that may influence the efficacy of cessation interventions, this analysis would contribute to inform targeted treatment strategies to enhance smoking cessation outcomes among individuals with MDD.     
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
@@ -64,16 +64,16 @@ data <- read.csv("project2.csv")
 
 # Methods
 
-The data in this analysis is a collaboration with Dr. George Papandonatos from a 2 x 2 factorial, randomized, placebo-controlled study examining the efficacy and safety of behavioral activation for smoking cessation (BASC) and varenicline in treating tobacco dependence among adults with current or past major depressive disorder (MDD). Our sample population consists of 300 adults smokers with or previously with MDD. Patients were randomly assigned to either behavioral activation for smoking cessation (BASC) or standard behavioral treatment (ST) and either varenicline or placebo groups. That is, participants were assigned to four distinct intervention groups, including `ST + placebo`, `ST + varenicline`, `BASC + placebo`, and `BASC + varenicline.` Randomization was stratified by clinical site, sex, and level of depressive symptoms to ensure balanced representation across these factors. The data also records patients' smoking cessation outcomes at week 27 follow-up and relevant baseline characteristics. Key variables include smoking abstinence status (outcome), demographic characteristics (sex, age, income, education), their smoking behaviors (cigarettes per day, time to first cigarette after getting up, nicotine dependence score), and their psychiatric measures (MDD status, anhedonia score, other diagnoses, and antidepressant usage). 
+Our sample population consists of 300 adult smokers with or previously with MDD. Patients were randomly assigned to either behavioral activation for smoking cessation (BASC) or standard behavioral treatment (ST) and either varenicline or placebo groups. That is, participants were assigned to four distinct intervention groups, including `ST + placebo`, `ST + varenicline`, `BASC + placebo`, and `BASC + varenicline.` Randomization was stratified by clinical site, sex, and level of depressive symptoms to ensure balanced representation across these factors. 
 
-Using this data, our analysis aims to identify baseline variables as moderators of the behavioral treatment effects on end-of-treatment (EOT) abstinence and as predictors of smoking cessation, controlling for behavioral treatment and pharmacotherapy. Lasso regression will be applied to identify significant baseline characteristics and their interaction terms with the treatment, enable us to identify significant predictors and potential moderators on the EOT abstinence for people with MDD.
+
+Follow-up data was collected at week 27 to assess smoking cessation outcomes, along with relevant baseline characteristics. Key variables include smoking abstinence status, demographic characteristics (sex, age, income, and education), smoking behaviors (number of cigarettes per day, time to first cigarette after getting up, and nicotine dependence score), and psychiatric measures (MDD status, anhedonia score, other diagnoses, and antidepressant usage). 
 
 ## Data Preprocessing
 
-To prepare the data for analysis, we firstly convert all categorical variables to factor and for socioeconomic factors (income and education) with ordinal levels, we recoded levels in order to improve readability and interpretability. In addition, we combined race and ethnicity indicators into a single race variable with categories including Black, Hispanic, Non-Hispanic White, Mixed Race, and Unknown.
+To prepare dataset for analysis, we firstly converted all categorical variables into factors. For socioeconomic factors, income and education, we recoded levels to improve readability and interpretability. In addition, we combined race and ethnicity indicators into a single race variable with categories including Black, Hispanic, Non-Hispanic White, Mixed Race, and Unknown.
 
-The data also contains various levels of missingness across several variables presented in `Table 1.` Nicotine Metabolism Ratio (`NMR`) has the highest missingness rate, with 7% of observations missing. The FTCD score at baseline (`ftcd_score`) has the lowest missing rate, 0.33%, with only one patient missing information on this variable. Given the limited sample size of this data, we prefer to maintain as many observations as possible in our analysis. Thus, to address the missingness, we applied a multiple imputation approach using the `mice()` function from the mice package in R before taking data into the primary analysis which provides plausible values for all missing entries across five imputed datasets.
-
+The dataset contains varying levels of missingness across several variables as presented in `Table 1`. Nicotine Metabolism Ratio (`NMR`) has the highest missing rate, with 7% of observations missing. The FTCD score at baseline (`ftcd_score`) has the lowest missing rate, 0.33%, with only one patient missing this information. Given our limited sample size, we prefer to retain as many observations as possible for our analysis. Therefore, to address the missingness, we applied a multiple imputation approach using the `mice()` function from the `mice` package in R, generating five imputed datasets to provide plausible values for all missing entries before proceeding to the primary analysis.
 
 ```{r}
 # factor categorical variables
@@ -152,9 +152,11 @@ missingness_df %>%
 
 ## Data Exploration and Transformation
 
-To investigate potential interactions between baseline characteristics and treatment assignment on end-of-treatment (EOT) abstinence, we examined the distribution of each baseline variable across treatment groups and abstinence outcomes.  
+To explore potential interactions between baseline characteristics and treatment assignment on EOT abstinence, we examined the distribution of each baseline variable across treatment groups and abstinence outcomes.  
 
-For categorical variables, we plot bar charts to show patterns across treatment groups and abstinence groups shown in `Figure 1` and `Figure 2.` Income in `Figure 1` exhibits different distribution among groups and abstinence outcomes. Within each treatment group, different income levels show various proportions of abstinent rate, suggesting that income level may be a potential predictor of treatment effect on abstinence. Most people with less than \$20,000 income `BASC + placebo` did not achieve abstinence at week 27 follow-up, while in the `ST + placebo` group, around 25% participants achieved abstinence. In addition, people with income ranging from \$35,001 to \$50,000 are more likely to stop smoking at week 27 follow-up in the `BASC + placebo` group while most participants with this income level who were assigned to the `ST + placebo` group did not achieve abstinence. Similar patterns observed when we compared the two behavioral treatments with varenicline that people with the same income level exhibit different outcomes. These findings suggest that income level might be a potential moderator of the behavioral treatment effectiveness on the EOT abstinence among people with MDD.
+For categorical variables, bar charts show patterns across treatment groups and abstinence groups in `Figure 1` and `Figure 2.` Income in `Figure 1` exhibits different distributions among groups and abstinence outcomes. Within each treatment group, different income levels show various proportions of abstinence, suggesting that income level may be a potential predictor of treatment effect on abstinence. 
+
+In the `BASC + placebo` group, most participants with incomes lower than \$20,000 did not achieve abstinence at the week 27 follow-up, while nearly half of those in the `ST + placebo` group with similar income level achieved abstinence. In addition, people with income ranging from \$35,001 to \$50,000 are more likely to quit smoking at the week 27 follow-up in the `BASC + placebo` group while most participants with this income level assigned to the `ST + placebo` group did not achieve abstinence. Similar variations in abstinence outcomes within income levels were observed when comparing the two behavioral treatments combined with varenicline, indicating that income level might be a potential moderator of the behavioral treatment effectiveness on the EOT abstinence among people with MDD.
 
 ```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
 income_stackplot <- ggplot(averaged_data_factor, aes(x = abst, fill = inc)) +
@@ -205,9 +207,16 @@ combined_plot_eduinc <- combined_plot_eduinc & theme(plot.margin = margin(10, 10
 combined_plot_eduinc
 ```
 
-Similar for education level presented in `Figure 2,` within each treatment group, people with difference education level exhibit various abstinence rate at follow up. For example, observing the `BASC + placebo` group, college graduated participants are more likely to achieve abstinence at follow up compared to those with lower education levels, suggesting that income level may be a potential predictor of treatment effect on abstinence. Additionally, comparing the two behavioral treatment with varenicline, college graduated participants are less likely to achieve abstinence with BASC while they present higher abstinence rate at week 27 follow-up with ST. Also, patients with high school graduate or GED exhibit higher likelihood of smoking cessation with BASC while their abstinence rate becomes much lower with ST, further suggesting that education level could be a potential moderator of the treatment effects on the EOT abstinence among people with MDD. 
+Similarly, as shown in `Figure 1`, education level appears to impact abstinence rates across treatment groups. Within each treatment group, participants with different education levels demonstrate varying abstinence rates at follow-up. For example, observing the `BASC + placebo` group, college graduated participants are more likely to achieve abstinence at the follow up compared to those with lower education levels, suggesting that income level may be a predictor of treatment effect on abstinence. 
 
-Race and the indicator of exclusive mentholated cigarette users (`Only.Menthol`) also exhibit difference distribution across treatment groups and outcome values shown in `Figure 2.` For example, in the `ST + placebo`, `BASC + placebo`, and `BASC + varenicline` groups, non-Hispanic White participants are more likely to stop smoking compared to Hispanic and Black participants. This indicates that race might be a potential predictor of the treatment effect on EOT abstinence for people with MDD. Additionally, comparing the two behavioral treatments with placebo, Hispanic participants with ST are more likely to achieve smoking cessation while this pattern reverses when they were assigned to BASC. Moreover, comparing the two varenicline groups, black people with BASC show less likelihood of stop smoking while they show larger abstinence rate in the ST group. Similar pattern observed for the indicator of exclusive mentholated cigarette users (`Only.Menthol`). In the two varenicline groups, mentholated cigarette users (`Only.Menthol` = 1) with ST are more likely to achieve abstinence while these users with BASC exhibit much lower abstinence rate at week 27 follow-up. These findings suggest that race and the indicator of exclusive mentholated cigarette users could be potential predictors or moderators of the treatment effects on the EOT abstinence for people with MDD.
+Additionally, comparing the two behavioral treatments with varenicline, college graduates in the `ST + varenicline` group show higher abstinence rates at week 27 than those in the `BASC + varenicline` group. Also, patients with a high school diploma or GED exhibit a higher likelihood of smoking cessation with BASC while their abstinence rate becomes much lower with ST. These findings suggest that education levels moderate the effects of behavioral treatment on EOT abstinence among individuals with MDD.
+
+Race and the indicator of exclusive mentholated cigarette users (`Only.Menthol`) also show differences in distribution across treatment groups and outcome values, as shown in `Figure 2.` For example, in the `ST + placebo`, `BASC + placebo`, and `BASC + varenicline` groups, non-Hispanic White participants are more likely to stop smoking compared to other racial groups. This indicates that race might be a predictor of the treatment effect on EOT abstinence for people with MDD. 
+
+Additionally, comparing the two behavioral treatments with placebo, Hispanic participants with ST are more likely to achieve smoking cessation while this pattern reverses when they were assigned to BASC. Moreover, comparing the two varenicline groups, black people with BASC show less likelihood of stopping smoking while they show a larger abstinence rate in the ST group. 
+
+Similar pattern observed for the indicator of exclusive mentholated cigarette users (`Only.Menthol`). In the two varenicline groups, mentholated cigarette users (`Only.Menthol` = 1) with ST are more likely to achieve abstinence while these users with BASC exhibit much lower abstinence rate at week 27 follow-up. These findings suggest that race and the indicator of exclusive mentholated cigarette users could be potential predictors or moderators of the treatment effects on the EOT abstinence for people with MDD.
+
 
 ```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
 race_stackplot <- ggplot(averaged_data_factor, aes(x = abst, fill = race)) +
@@ -257,9 +266,12 @@ combined_plot_racementhol <- combined_plot_racementhol & theme(plot.margin = mar
 combined_plot_racementhol
 ```
 
-We also examine the distribution of continuous variables by their treatment group and outcome values shown in `Figure 3` and `Figure 4`. Among all continuous variables, age, FTCD score, NMR, and BDI score exhibit different distribution among treatment groups and abstinence status at week 27 follow-up.
+We also examine the distribution of continuous variables by treatment groups and outcome status, as shown in `Figure 3` and `Figure 4`. Among continuous variables, age (`age_ps`), FTCD score, NMR, and BDI score (`bdi_score_W00`) exhibited differences in distribution across treatment groups and abstinence status at the week 27 follow-up.
 
-Seeing `Figure 3`, the abstinence rate changes as age various within the same treatment group, suggesting age as a predictor of treatment effect on EOT abstinence. Moreover, comparing the two placebo groups, younger people with BASC shows higher abstinence rate while this group exhibits low abstinence rate with ST. In the two varenicline groups, although the general pattern of distributions are similar, middle-age people with ST show significantly higher abstinence rate compared to middle-age people with BASC. Additionally, the distribution of abstinence rate changes as FTCD score varies, suggesting the predicting role of FTCD score on the treatment effect. Moreover, participants with higher FTCD score in the `ST + placebo` group show significantly higher likelihood to continue smoking compared to whom in the `BASC + placebo` group. Participants with FTCD score around 5 show higher abstinence rate in the `ST + varenicline` group compared to those with `BASC + varenicline`. These findings suggest a potential age-behavioral treatment and FTCD score-treatment interaction terms that age and FTCD score might be predictors and moderators of the treatment effect on the EOT abstinence.
+Seeing `Figure 3`, the abstinence rate varies with age within the same treatment group, suggesting age as a predictor of treatment effect on EOT abstinence. Moreover, in the two placebo groups, younger participants in the `BASC + placebo` group show higher abstinence rate while this group of individuals exhibits lower abstinence rate in the `ST + placebo` group. Within the varenicline groups, middle-aged participants in ST + varenicline demonstrate significantly higher abstinence rates than middle-aged participants in BASC + varenicline.
+
+The FTCD score also appears to influence abstinence outcomes, with abstinence rates changing as FTCD scores vary. Moreover, participants with higher FTCD score in the `ST + placebo` group show significantly higher likelihood to continue smoking compared to those in the `BASC + placebo` group. Moreover, participants with FTCD score around 5 in the `ST + varenicline` group show higher abstinence rate compared to those in the `BASC + varenicline` group. These findings suggest potential interactions between age and behavioral treatment, as well as FTCD score-treatment and treatment. Age and FTCD score might serve as predictors and moderators of the treatment effect on the EOT abstinence.
+
 
 ```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
 ftcd_score_stackplot <- ggplot(averaged_data_factor, aes(x = ftcd_score, fill = abst)) +
@@ -309,8 +321,6 @@ combined_plot_ftcdage <- combined_plot_ftcdage & theme(plot.margin = margin(10, 
 combined_plot_ftcdage
 ```
 
-Seeing `Figure 4`, the distribution of NMR is skewed towards participants with higher nicotine metabolism ratio (NMR) across all groups. In the two placebo groups, participants with lower NMR are more likely to quit smoking at week 27 follow-up while this gap is less pronounced in the two varenicline groups. However, in the `BASC + placebo` group, there is a huge gap on abstinence rate between participants with NMR ranging from 0.3 to 0.5. Moreover, comparing the two varenicline groups, people with NMR ranging from 0.3 to 0.7 who were assigned to ST show higher abstinence rate while they show much lower abstinence rate with BASC. Moreover, comparing the two placebo groups, participants in the ST group with lower BDI scores (less severe depressive symptoms) are more likely to stop smoking and those with middle level BDI scores are less likely to stop smoking. However, in the BASC group, participants show similar distribution regardless of their depressive severity, suggesting the complex interacting relationship between BDI score and the combination of behavioral and pharmacological treatments. The same pattern observed when we compared the two varenicline groups. These findings suggest that both NMR and BDI scores may interact with behavioral treatment type, influencing smoking cessation outcomes.
-
 ```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
 NMR_stackplot <- ggplot(averaged_data_factor, aes(x = NMR, fill = abst)) +
   geom_density(alpha = 0.5) +
@@ -358,7 +368,11 @@ combined_plot_NMRbdi <- combined_plot_NMRbdi & theme(plot.margin = margin(10, 10
 combined_plot_NMRbdi
 ```
 
-Additionally, examining the correlation among continuous variables, we observed that most variables show low to moderate correlations with each other, with both positive and negative relationship present.
+Seeing `Figure 4`, the distribution of NMR is right skewed towards participants with higher values across all treatment groups. In the placebo groups, participants with lower NMR are more likely to quit smoking at the week 27 follow-up while this gap is less pronounced in the varenicline groups. Within the `BASC + placebo` group, there is a huge gap in abstinence rate between participants with NMRs ranging from 0.3 to 0.5. Moreover, comparing the varenicline groups, participants with NMRs between 0.3 and 0.7 show higher abstinence rate in the `ST + varenicline` group but lower abstinence rate in the `BASC + varenicline` group. 
+
+For the BDI score (measure of depression), which reflects depressive symptom severity, distinct patterns also emerge. In the placebo groups, participants in the ST group with lower BDI scores (indicating less severe depressive symptoms) are more likely to stop smoking, while those with moderate BDI scores show lower abstinence rates. However, in the BASC group, participants show a more uniform distribution regardless of their depressive severity. The same pattern was observed when we compared the two varenicline groups, suggesting a complex interacting relationship between BDI score and the combination of behavioral and pharmacological treatments. These findings suggest that both NMR and BDI scores may interact with behavioral treatment types, influencing smoking cessation outcomes and potentially serving as moderators of treatment effects.
+
+Additionally, examining the correlation among continuous variables shown in `Figure 5`, we observed that most variables show low to moderate correlations with each other, with both positive and negative relationships present.
 
 ```{r, out.width = "80%", fig.align='center'}
 # create a correlation matrix among environmental condition factors
@@ -368,17 +382,18 @@ cor_matrix <- cor(averaged_data_factor[, c(5, 12, 14, 15, 16, 17, 18, 19, 23, 25
 corrplot(cor_matrix, method = "color", type = "lower", 
          tl.col = "black", tl.cex = 0.8, addCoef.col = "black",
          number.cex = 0.7, col = colorRampPalette(c("steelblue", "white", "steelblue"))(200))
-title("Figure 3: Correlation Plot among Environmental Condition Characteristics", 
+title("Figure 5: Correlation Plot among Environmental Condition Characteristics", 
       cex.main = 0.9, line = 3) 
 ```
 
-Next, to address skewness in several variables, we applied specific transformations based on the distributional characteristics of each variable (transformations were performed after the imputation step). Among all continuous variables, `hedonsum_n_pq1`, `hedonsum_y_pq1`, `shaps_score_pq1`, and `NMR` exhibit right skewness over distribution. `Table 2` summarizes the skewness value of these variables before and after transformation.
+To address skewness in several variables, we applied specific transformations based on the distributional characteristics of each variable, with transformations performed after the imputation step. Among the continuous variables, pleasurable events scale of substitute reinforcers (`hedonsum_n_pq1`), pleasurable events scale of complementary reinforcers (`hedonsum_y_pq1`), measure of anhedonia (`shaps_score_pq1`), and NMR exhibit right-skewed distributions. `Table 2` summarizes the skewness value of these variables before and after transformation.
 
-For the two pleasurable events scale variables, `hedonsum_n_pq1` and `hedonsum_y_pq1`, we applied a square root transformation to reduce their high positive skewness values (1.34 and 1.39, respectively). This transformation brought their skewness close to zero (-0.06 and 0.06, respectively), resulting a more symmetric distribution. 
+For the two pleasurable event scale variables, `hedonsum_n_pq1` and `hedonsum_y_pq1`, we applied a square root transformation to reduce high positive skewness values (1.34 and 1.39, respectively). This transformation brought their skewness close to zero (-0.06 and 0.06, respectively), resulting in more symmetric distributions. 
 
-Additionally, since `shaps_score_pq1` contains nearly 50% zero entries and it exhibits high positive skewness value 1.71,  we explored several transformations, including log, square root, and inverse hyperbolic sine (`asinh()`). The inverse hyperbolic sine transformation produced the lowest skewness (0.52), making it the most suitable choice for this variable. 
+Additionally, given that `shaps_score_pq1` had nearly 50% zero entries and a high positive skewness (1.71), we explored several transformations, including log, square root, and inverse hyperbolic sine (`asinh()`). The inverse hyperbolic sine transformation produced the lowest skewness (0.52), making it the most suitable choice for this variable. 
 
 Finally, we applied a log transformation on NMR which presents the highest skewness value before transformation (1.92). The log transformation successfully reduced the skewness to a nearly symmetric value. 
+ 
 ```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
 # Take transformation
 averaged_data_factor_transformed <- averaged_data_factor
@@ -413,12 +428,13 @@ skewness_df %>%
   column_spec(4, width = "3.5cm")
 ```
 
-
+To analyze the impact of behavioral treatment on end-of-treatment abstinence and examine the moderating role of baseline characteristics, we selected Lasso regression as our primary model. Lasso was chosen for its ability to perform both variable selection and regularization, making it particularly suited for our study, which involves numerous baseline predictors and interaction terms. By applying an L1 penalty, Lasso shrinks less relevant coefficients to zero, effectively selecting a subset of the most influential predictors and interactions. 
+ 
 # Results
 
 Before conducting the primary analysis, we performed exploratory data analysis (EDA) to examine baseline characteristics, assess data distributions, and identify potential relationships within the dataset.
 
-`Table 1` presents an overall summary statistics of patients' baseline characteristics by their behavioral and pharmacological treatment assignment. Since our study is a $2 \times 2$, factorial, randomized, placebo-controlled trial, patients are randomly assigned to either behavioral activation for smoking cessation group (BASC) or standard behavioral treatment group (ST) and either varenicline or placebo blister pack. Patients can be categorized into four treatment arm groups: BASC + placebo, BASC + varenicline, ST + placebo, and ST + varenicline. Seeing from `Table 1`, the two placebo groups both have 68 obervations while the two varenicline groups have 83 and 81 observations, respectively. 
+`Table 3` presents an overall summary of statistics of patients' baseline characteristics by their behavioral and pharmacological treatment assignment. Since our study is a $2 \times 2$, factorial, randomized, placebo-controlled trial, patients are randomly assigned to either behavioral activation for smoking cessation group (BASC) or standard behavioral treatment group (ST) and either varenicline or placebo blister pack. Patients can be categorized into four treatment arm groups: BASC + placebo, BASC + varenicline, ST + placebo, and ST + varenicline. From `Table 3`, the two placebo groups both have 68 observations while the two varenicline groups have 83 and 81 observations, respectively. 
 
 Most variables are evenly distributed across the four treatment arms, which reflects successful randomization in this factorial trial. However, a few key factors, such as socioeconomic indicators (income and education) and specific mental health variables (MDD status, DSM-5 diagnoses), exhibit slight variations that may influence outcomes. Notably, treatment arms with varenicline show higher abstinence rates than placebo groups, suggesting the potential efficacy of this pharmacotherapy in combination with behavioral interventions. While many baseline characteristics are evenly distributed across groups, some may still function as moderators, potentially interacting with treatment assignment to affect abstinence success. In addition, only one observation falls into the Grade School level in the education variable. To ensure the appropriate representation of categories, we combined the grade school level with the next level, some high school, during the regression analysis. This adjustment ensures sufficient sample sizes across categories when we split the data. 
 
@@ -469,11 +485,11 @@ summary_table %>%
   row_spec(0, bold = TRUE, font_size = 7)
 ```
 
-To analyze the impact of behavioral treatment on end-of-treatment abstinence and examine the moderating role of baseline characteristics, we selected Lasso regression as our primary model. Lasso was chosen for its ability to perform both variable selection and regularization, making it particularly suited for our study, which involves numerous baseline predictors and interaction terms. By applying an L1 penalty, Lasso shrinks less relevant coefficients to zero, effectively selecting a subset of the most influential predictors and interactions. 
+As mentioned earlier, we performed multiple imputation using the `mice()` function to generate five different imputed data to address missingness. We then applied transformations listed in `Table 2` to the corresponding skewed variables in each imputed dataset. Each imputed dataset was then split into a 70% training set and a 30% test set, stratified by treatment group using the `createDataPartition()` function in the `caret` package. 
 
-As mentioned earlier, we performed multiple imputation using `mice()` function to generate five different imputed data to address missingness. To account for skewness in the data, we then applied the corresponding transformations shown in `Table 2` to the skewed variables in each of the five imputed datasets. Each imputed dataset was split into a 70% training set and a 30% test set, stratified by treatment group using the `createDataPartition()` function in the `caret` package. Lasso regression was then applied to each training set using `cv.glmnet()` with a design matrix that included all baseline characteristics and their interactions with the behavioral treatment and pharmacological treatment, respectively. To maintain the same distribution of treatment group across each cross-validation folds in lasso regression, we created custom fold assignments by treatment level and specified these assignments in the `foldid` argument in `cv.glmnet()`. During cross-validation, we identified the optimal regularization parameter, `lambda.min`, which minimized the cross-validated error and extract the coefficient estimates for each lasso model at this optimal lambda value. Finally, we averaged the coefficient estimates across all five Lasso models to obtain the final pooled estimates present in `Table 4`.
+Lasso regression was conducted on each training set using `cv.glmnet()` with a design matrix that included all baseline characteristics and their interactions with the behavioral and pharmacological treatment, respectively. To ensure consistent treatment group distribution across each cross-validation fold in lasso regression, we created custom fold assignments by treatment level and specified these assignments through the `foldid` argument in `cv.glmnet()`. 
 
-
+During cross-validation, we identified the optimal regularization parameter, `lambda.min`, which minimized the cross-validated error, and extracted the coefficient estimates for each lasso model at this optimal lambda value. Finally, we averaged the coefficient estimates from all five Lasso models to obtain the final pooled estimates, presented in `Table 4`.
 
 ```{r}
 # Set working directory
@@ -581,7 +597,8 @@ lasso_model_function_moderator <- function(data_list) {
     y <- train_data$abst
     
     # Fit lasso with cross-validation using custom foldid
-    cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, nfolds = 10, foldid = train_data$foldid)
+    cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, nfolds = 10, 
+                          foldid = train_data$foldid, nlambda = 100)
     best_lambda <- cv_model$lambda.min
     
     # Fit final lasso model using best lambda
@@ -644,13 +661,27 @@ ordered_model_results %>%
   kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
 ```
 
-Observing the main effects variables in `Table 4`, the `ftcd_score` has a coefficient estimate of -0.1217, suggesting that for each one-unit increase in FTCD score, the odds of abstinence for people with MDD would be approximately 0.8854. That is, more severe nicotine dependence might lead to a lower probability of abstinence after treatment for people with MDD, holding other factors constant. `mde_curr1` which is an indicator of the participants' MDD status, has an estimate of -0.2054. This indicates that current MDD participants might have lower likelihood of abstinence after treatment adjusting for their treatment groups with the odds of smoking cessation decreases by around $1 - 0.8142 = 18.58%$. The log-transformed Nicotine Metabolism Ratio (NMR) has an estimate of 0.2363, suggesting that for each unit increase in log(NMR), the odds of abstinence rise by about 26.7%, holding other factors constant. That is, faster nicotine metabolism would be associated with higher odds of abstinence, adjusting for their treatment groups and other covariates. 
+Observing the main effects in `Table 4`, we find that the FTCD score has a coefficient of -0.1217, suggesting that each one-unit increase in FTCD score decreases the odds of abstinence for people with MDD by approximately 11.46%, indicating that higher nicotine dependence may reduce abstinence likelihood, holding other factors constant. The square root transformed pleasurable events scale of substitute reinforcers, `hedonsum_n_pq1`, also present a significant estimate of -0.0019. This indicates that for each one-unit increase in the square root of the Pleasurable Events Scale score at baseline, the odds of smoking abstinence decrease by approximately 0.2%. 
 
-The non-Hispanic White level in the race variable show an estimate of 0.3216, indicating that the odds of abstinence for Non-Hispanic White people with MDD is 37.93% higher than that for other racial groups. Notably, there is also an interaction term between BASC and the racial group. This interaction suggests that Non-Hispanic White people using the BASC treatment might experience a small additional increase in the odds of abstinence compared to people in other racial groups. Thus, race variable not only functions as predictor but also as a moderator since the treatment effect of BASC on smoking cessation varies among racial groups.
+The MDD status indicator (`mde_curr1`) has an estimate of -0.2054, implying that participants with current MDD have an 18.58% lower odds of abstinence compared to those without current MDD, adjusting for treatment groups. Moreover, for the log-transformed Nicotine Metabolism Ratio (`NMR`), the estimate of 0.2363 suggests that each unit increase in log(NMR) is associated with a 26.7% increase in the odds of abstinence, indicating that faster nicotine metabolism correlates with higher abstinence rates, holding other factors constant.
 
-This is same for the indicator of exclusive mentholated cigarette user, `Only.Menthol`, and the income characteristics, `inc`. The interaction term between BASC treatment and `Only.Menthol` displays an estimate of -0.3842, suggesting that for MDD people receiving the BASC treatment, those who are mentholated cigarette user would have a 31.81% of decrease in the odds of abstinence compared to those who are not mentholated cigarette user. Additionally, the interaction term between BASC treatment and income ($35,001-50,000) has an estimate of 0.0124. This suggests that for MDD people receiving the BASC treatment, those who have income ranging from \$35,000 to \$50,000 would experience approximately a 1.25% increase in the odds of abstinence compared to individuals with different income levels. 
+Regarding race, Non-Hispanic White participants show an estimate of 0.3216, indicating that they have a 37.93% higher odds of abstinence than other racial groups. Additionally, the interaction between BASC treatment and race suggests that Non-Hispanic White participants using BASC experience a small additional increase in abstinence odds. Thus, race variable not only functions as apredictor but also as a moderator since the treatment effect of BASC on smoking cessation varies among racial groups.
 
-The model also has several interaction term with the indicator of varenicline treatment (Var) which identify potential moderators for the pharmacological treatment on the EOT abstinence for people with MDD. Specifically, cigarette reward value (`crv_total_pq1`), education level (level: high school graduate or GED), race (level: mixed race), sex, and age serve as potential moderators. These interactions suggest that the effectiveness of varenicline may vary depending on these baseline characteristics, highlighting the nuanced impact of pharmacological treatment across different demographic and behavioral profiles.
+This is same for the indicator of exclusive mentholated cigarette user, `Only.Menthol`, and the income
+characteristics, `inc`. The interaction term between BASC treatment and Only.Menthol displays an estimate
+of -0.3842, suggesting that for MDD people receiving the BASC treatment, those who are mentholated
+cigarette user would have a 31.81% of decrease in the odds of abstinence compared to those who are not
+mentholated cigarette user. Additionally, the interaction term between BASC treatment and income ($35,001-
+50,000) has an estimate of 0.0124. This suggests that for MDD people receiving the BASC treatment, those
+who have income ranging from \$35,000 to \$50,000 would experience approximately a 1.25% increase in the
+odds of abstinence compared to individuals with different income levels.
+
+The model also has several interaction term with the indicator of varenicline treatment (`Var`) which identify
+potential moderators for the pharmacological treatment on the EOT abstinence for people with MDD.
+Specifically, cigarette reward value (`crv_total_pq1`), education level (level: high school graduate or GED),
+race (level: mixed race), sex, and age serve as potential moderators. These interactions suggest that the
+effectiveness of varenicline may vary depending on these baseline characteristics, highlighting the nuanced
+impact of pharmacological treatment across different demographic and behavioral profiles.
 
 ```{r}
 long_data_train <- data.frame()
@@ -731,10 +762,6 @@ long_data_testset$log_odds <- pooled_intercept + as.matrix(long_data_testset) %*
 long_data_testset$predicted_prob <- 1 / (1 + exp(-long_data_testset$log_odds))
 ```
 
-We also examine the model's performance using ROC and calibration plots shown in `Figure 6` and `Figure 7`. The prediction values for the train and test sets are calculated using the long format of train and test sets from the five imputed datasets, respectively. Observing `Figure 6`, the ROC curves indicate that our model effectively distinguishes between positive and negative classes. The train set has an AUC of 0.809 while the test test has an AUC of 0.75. Although there is a slight drop in AUC on the test set, the model still shows great discriminative power on unseen data. 
-
-Moreover, observing `Figure 7`, the calibration plot for the training set shows that the model is well-calibrated with lower probability predictions, with points distributed around the diagonal line which indicates the alignment between the predictions and observed values. However, as probabilities increase, slight deviations appear. The test set calibration plot shows more pronounced deviations from the diagonal line. This suggests that while the model’s predictions are reasonably aligned with actual outcomes for the training data, calibration issues are more substantial in the test set, which needs further investigation. 
-
 ```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
 # do roc on train and test sets
 auc_result <- roc(long_data_train$abst, long_data_trainset$predicted_prob)
@@ -743,10 +770,12 @@ auc_result_test <- roc(long_data_test$abst, long_data_testset$predicted_prob)
 # plot roc for both sets
 par(mfrow= c(1,2), oma = c(0, 0, 2, 0))
 plot(auc_result, main = "Train Data", font.main = 1, cex.main = 0.8, cex.lab = 0.8)
-text(0.3, 0.2, paste("AUC =", round(auc(auc_result), 3)), col = "blue", cex = 0.7)
+text(0.3, 0.2, paste("AUC =", round(auc(auc_result), 2)), col = "blue", cex = 0.7)
 
 plot(auc_result_test, main = "Test Data", font.main = 1, cex.main = 0.8, cex.lab = 0.8)
-text(0.3, 0.2, paste("AUC =", round(auc(auc_result_test), 3)), col = "blue", cex = 0.7)
+text(0.3, 0.2, paste("AUC =", round(auc(auc_result_test), 2)), col = "blue", cex = 0.7)
+
+mtext("Figure 6: ROC Curves for Train and Test Data", outer = TRUE, cex = 1)
 ```
 
 
@@ -761,19 +790,26 @@ cal_plot_test <- calibration_plot(data = long_data_testset, obs = "abst_num", pr
 
 grid.arrange(cal_plot_train$calibration_plot, 
              cal_plot_test$calibration_plot, ncol = 2,
-             top = text_grob("Figure 4: Calibration Plot Comparison"))
+             top = text_grob("Figure 7: Calibration Plot Comparison"))
 ```
 
+We also examine the model's performance using ROC and calibration plots shown in `Figure 6` and `Figure 7`. The prediction values for the train and test sets are calculated using the long format of train and test sets from the five imputed datasets, respectively. Observing `Figure 6`, the ROC curves indicate that our model effectively distinguishes between positive and negative classes. The train set has an AUC of 0.81 while the test test has an AUC of 0.75. Although there is a slight drop in AUC on the test set, the model still shows great discriminative power on unseen data. 
+
+Moreover, observing `Figure 7`, the calibration plot for the training set shows that the model is well-calibrated with lower probability predictions, with points distributed around the diagonal line which indicates the alignment between the predictions and observed values. However, as probabilities increase, slight deviations appear. The test set calibration plot shows more pronounced deviations from the diagonal line. This suggests that while the model’s predictions are reasonably aligned with actual outcomes for the training data, calibration issues are more substantial in the test set, which needs further investigation. 
 
 # Discussion
 
-Collaborating with the study of smoking cessation for people with MDD led by Dr. George Papandonatos, this study aims to further investigate potential moderators of behavioral treatment (BASC vs. ST) on the EOT abstinence for this group of people and dedicates to identify baseline characteristics as predictors of abstinence, controlling for behavioral treatment and pharmacotherapy. Lasso regression is chosen to perform variable selection that helps to focus on the most influential baseline characteristics and their interaction terms to balance predictivity and interpretability. As predictors, control for treatment and other factors, higher nicotine dependence (higher FTCD score), and current MDD status both associate with lower likelihood of abstinence. Conversely, faster nicotine metabolism (higher NMR in log scale) associates with higher odds of abstinence, adjusting for treatment and other factors. 
+Collaborating with the study of smoking cessation for people with MDD led by Dr. George Papandonatos, this study aims to further investigate potential moderators of behavioral treatment (BASC vs. ST) on the EOT abstinence for this group of people and dedicates to identify baseline characteristics as predictors of abstinence, controlling for behavioral and pharmacotherapy treatment. Lasso regression is chosen to perform variable selection that helps to focus on the most influential baseline characteristics and their interaction terms, balancing predictivity with interpretability. 
 
-The race variable, particularly Non-Hispanic White level, serves as both predictor and moderator of behavioral treatment. Non-Hispanic White people had higher odds of abstinence and they experience more benefits from the BASC treatment. The indicator of menthol cigarette users (`Only.Menthol`) and income also serve as the moderators of behavioral treatment on the EOT abstinence for people with MDD. Specifically, menthol cigarette users treat with BASC face lower abstinence odds compared to non-menthol cigarette users treat with BASC, while in the BASC treatment group, people with income ranging from \$35,001 to \$50,000 benefits more from the BASC treatment compared to people with other levels of income. Additionally, the significant interaction terms with varenicline (Var) also suggest that the effectiveness of pharmacological treatment would vary by cigarette reward value, education level, race, sex, and age. 
+Control for treatment and other factors, as predictors, higher nicotine dependence (higher FTCD score), higher pleasurable events scale score, and current MDD status both associate with lower likelihood of abstinence. Conversely, having faster nicotine metabolism (higher NMR in log scale) was associated with higher odds of abstinence, adjusting for treatment and other factors.
+
+Additionally, race emerged as both a predictor and moderator, with Non-Hispanic White participants showing higher odds of abstinence and a greater benefit from BASC compared to other racial groups. Menthol cigarette use and income level also moderated the effects of BASC, with menthol users experiencing lower abstinence odds and individuals with incomes between \$35,001 and \$50,000 benefiting more from BASC. Furthermore, significant interaction terms with varenicline suggest that the efficacy of pharmacotherapy varies by factors like cigarette reward value, education, race, sex, and age. 
 
 The model evaluation using ROC and calibration plots reveals our model's strong discriminative power but raises slight concern regarding calibration on the test set which needs further investigation.
 
-As the original paper states, a limitation of this study is that adherence to both behavioral treatment and pharmacotherapy was low, particular in the BASC-only group. The use of ITT approach under this scenario might underestimate treatment effects due to low adherence. An additional limitation of our analysis is that, although our sample provides a diverse phase of patients with MDD, certain levels within some categorical variables have limited sample sizes. Specifically, as shown in `Table 3`, only one observation falls within the "Grade school" category for the education variable. This limited representation may reduce the statistical power to detect effects for these categories, limiting the generalizibility of our study. Further researches could explore strategies to enhance engagement and adherence and expand data with more balanced underrepresented groups to improve the accuracy and generalizability of our model. A future direction for this study would be to apply a multilevel modeling approach to better understand the influences of both individual and contextual factors on smoking cessation outcomes in individuals with MDD. This approach would allow for the analysis of time-varying and group-level predictoes, such as provider expertise or site-specific support, to assess how these factors interact with individual characteristics to impact abstinence.
+As noted in the original paper, a limitation of this study is the low adherence to both behavioral treatment and pharmacotherapy, particular in the BASC-only group. The use of an ITT approach under this scenario might lead to an underestimation of treatment effects due to low adherence. An additional limitation of our analysis is that, although our sample provides a diverse phase of patients with MDD, certain levels within some categorical variables have limited sample sizes. For example, as shown in `Table 3`, only one observation falls within the "Grade school" category for education. This limited representation may reduce the statistical power and limit the generalizability of our study. 
+
+Further research could explore strategies to enhance engagement and adherence and expand data collection to achieve more balanced representation of those underrepresented groups to improve the accuracy and generalizability of our model. Additionally, a future direction would be to apply a multilevel modeling approach which allows for the analysis of time-varying and group-level predictors, such as provider expertise or site-specific support. This method would allow us to assess how these factors interact with individual characteristics to impact abstinence outcome.
 
 \newpage
 # Appendix
