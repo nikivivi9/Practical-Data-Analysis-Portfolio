@@ -1,6 +1,6 @@
 ---
 title: "Influence of Baseline Characteristics on Smoking Cessation in MDD: A Study of Behavioral and Pharmacological Treatment Effects"
-author: "Yingxi Kong"
+anthor: Yingxi Kong
 output:
   pdf_document
 bibliography: references.bib
@@ -661,11 +661,9 @@ ordered_model_results %>%
   kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
 ```
 
-Observing the main effects in `Table 4`, we find that the FTCD score has a coefficient of -0.1217, suggesting that each one-unit increase in FTCD score decreases the odds of abstinence for people with MDD by approximately 11.46%, indicating that higher nicotine dependence may reduce abstinence likelihood, holding other factors constant. The square root transformed pleasurable events scale of substitute reinforcers, `hedonsum_n_pq1`, also present a significant estimate of -0.0019. This indicates that for each one-unit increase in the square root of the Pleasurable Events Scale score at baseline, the odds of smoking abstinence decrease by approximately 0.2%. 
+Observing the main effects in `Table 4`, we find that the FTCD score has a coefficient of -0.1217, suggesting that each one-unit increase in FTCD score decreases the odds of abstinence for people with MDD by approximately 11.46%, indicating that higher nicotine dependence may reduce abstinence likelihood, holding other factors constant. Similarly, the square root transformed pleasurable events scale of substitute reinforcers, `hedonsum_n_pq1`, and the MDD status indicator (`mde_curr1`) display negative coefficient estimates, suggesting the negative association between higher pleasurable events scale and current MDD experience and the odds of smoking abstinence.
 
-The MDD status indicator (`mde_curr1`) has an estimate of -0.2054, implying that participants with current MDD have an 18.58% lower odds of abstinence compared to those without current MDD, adjusting for treatment groups. Moreover, for the log-transformed Nicotine Metabolism Ratio (`NMR`), the estimate of 0.2363 suggests that each unit increase in log(NMR) is associated with a 26.7% increase in the odds of abstinence, indicating that faster nicotine metabolism correlates with higher abstinence rates, holding other factors constant.
-
-Regarding race, Non-Hispanic White participants show an estimate of 0.3216, indicating that they have a 37.93% higher odds of abstinence than other racial groups. Additionally, the interaction between BASC treatment and race suggests that Non-Hispanic White participants using BASC experience a small additional increase in abstinence odds. Thus, race variable not only functions as apredictor but also as a moderator since the treatment effect of BASC on smoking cessation varies among racial groups.
+Moreover, the log-transformed Nicotine Metabolism Ratio (`NMR`) and the race variable (Non-Hispanic White group) both present a positive association with the smoking cessation outcome among people with MDD, controlling for other covariates. Notably, the interaction term between BASC treatment and race exhibits significant estimate as well, suggesting that Non-Hispanic White participants using BASC would experience a small additional increase in abstinence odds. Thus, the NMR and race variable not only functions as predictors but also as moderators.
 
 This is same for the indicator of exclusive mentholated cigarette user, `Only.Menthol`, and the income
 characteristics, `inc`. The interaction term between BASC treatment and Only.Menthol displays an estimate
@@ -812,10 +810,9 @@ As noted in the original paper, a limitation of this study is the low adherence 
 Further research could explore strategies to enhance engagement and adherence and expand data collection to achieve more balanced representation of those underrepresented groups to improve the accuracy and generalizability of our model. Additionally, a future direction would be to apply a multilevel modeling approach which allows for the analysis of time-varying and group-level predictors, such as provider expertise or site-specific support. This method would allow us to assess how these factors interact with individual characteristics to impact abstinence outcome.
 
 \newpage
-# Appendix
 
 ```{r ref.label = knitr::all_labels()}
-#| echo: true
+#| echo: false
 #| eval: false
 ```
 
