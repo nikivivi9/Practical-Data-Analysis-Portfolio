@@ -1,6 +1,6 @@
 ---
 title: "Influence of Baseline Characteristics on Smoking Cessation in MDD: A Study of Behavioral and Pharmacological Treatment Effects"
-anthor: Yingxi Kong
+author: Yingxi Kong
 output:
   pdf_document
 bibliography: references.bib
