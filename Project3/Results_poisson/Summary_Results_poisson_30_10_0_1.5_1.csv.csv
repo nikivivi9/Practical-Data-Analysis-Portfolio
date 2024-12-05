@@ -1,0 +1,2 @@
+"G","R","c1","c2","c1c2_ratio","alpha","beta","gamma_sq","total_cost","beta_estimate","beta_variance","beta_bias","mse","coverage"
+30,157,20,2,10,0,1.5,1,9960,1.5405912432466,0.140479343854024,0.0405912432466033,0.140722199443788,91

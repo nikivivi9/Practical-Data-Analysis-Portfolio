@@ -1,0 +1,229 @@
+---
+title: "Project 3"
+author: Yingxi Kong
+output:
+  pdf_document
+bibliography: references.bib
+csl: apa-numeric-superscript.csl
+---
+
+# Abstract
+
+# Introduction
+
+Cluster Randomized Trials (CRTs) are a common design approach in public health research. In CRTs, clusters are randomly assigned to either a treatment or a control group, and the treatment effect is estimated by comparing outcomes between those groups. This method is well suited to testing differences in a method or approach to patient care (as opposed to evaluating the physiological effects of an intervention)[@Heagerty2024]. However, balanced trade-off between the number of clusters and the number of observations within each clusters becomes a challenge in designing CRTs. People argues that increasing the number of clusters enhances the ability to detect treatment effects by reducing variability
+
+This study, conducted in collaboration with Dr.Zhijin Wu, aims to explore optimal experimental design under certain budget constraint to maximize the precision of the treatment effect estimation, specifically focusing on how varying parameters such as sampling costs, between- and within-cluster variability, and underlying outcome distributions impact the precision of treatment effect estimates. By employing a comprehensive simulation framework, we will investigate the trade-offs between the number of clusters and the number of observations per cluster. We consider scenarios with normally distributed outcomes and extend the analysis to Poisson-distributed outcomes, reflecting a range of potential real-world application and providing more applicable insights for designing efficient and cost-effective CRTs.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(lmerTest)
+library(ggplot2)
+library(kableExtra)
+```
+
+# Methods
+
+This study aims to investigate how to optimally select the number of clusters and the number of observations within each cluster under budget constraints in CRTs. In addition, we aims to explore how the optimal design changes as varying parameters like cost structures, levels of within- and between-cluster variability, and treatment effect. Specifically, this study would address two key objectives: (1). determining the optimal allocation of resources under a fixed budget limit and (2). understand how variations in underlying data generation mechanisms affect the precision of treatment effect estimation. To achieve these, we performed a comprehensive simulation framework guided by the ADEMP framework, ensuring the consistency and clarity when evaluating different design scenarios.
+
+## Background
+
+In designing our trial, we identify budget, B in dollars, as the given resource limit where B might also represents time or other resources required for the data collection process. In each cluster, the first sample cost $c_1$ and other additional samples in the same cluster cost $c_2$ where $c_2 < c_1$. Additionally, as we mentioned earlier, samples in the same cluster must be assigned to the same treatment or control group and their measurement might be correlated. Similarly, in sequencing data, samples in clusters refers to the repeated measurements from the same biological sample which are highly correlated and different clusters refers to different samples.
+
+We would consider settings where Y is normally distributed and where Y follows a Poisson distribution. $G\ (i = 1, ..., G)$ represents the number of clusters where $R\ (j = 1, ..., R)$ represents the number of observations within each cluster. Additionally, $X_i$ is a binary indicator of the treatment assignment for cluster i where $X_i = 0$ for control and $X_i = 1$ for treatment, and $Y_{ij}$ represents the observed outcome.
+
+## ADEMP Framework
+
+-   **Aims:** The primary aim of this simulation study is to identify optimal combination of cluster size and the number of observations per cluster under budget constraint, maximizing the precision of treatment effect estimation. In addition, we aims to explore how other data generation parameters, like cost ratio, variance, baseline mean, and treatment effect, would impact the optimal design.
+
+-   **Data-Generating Mechanism:**
+
+    -   Normally Distributed Outcomes:
+
+        For observation j (j = 1, ..., R) in cluster i (i = 1, ..., G), we have:
+
+        $$\mu_i = \alpha + \beta X_i + \epsilon_i \text{ with } \epsilon_i \sim N(0, \gamma^2) \text{, that is } \mu_i \sim N(\mu_{i0}, \gamma^2)$$
+
+        $$Y_{ij} = \mu_i + e_{ij} \text{ with } e_{ij} \sim iid\ N(0, \sigma^2) \text{, that is } Y_{ij}|\mu_i \sim N(\mu_i, \sigma^2)$$
+
+        Here, $\alpha$ indicates the baseline mean value while $\beta$ represents the treatment effect. $\gamma^2$ refers to the between-cluster variability and $\sigma^2$ represents the within-cluster variability.
+
+    -   Poisson Distributed Outcomes:
+
+        For observation j (j = 1, ..., R) in cluster i (i = 1, ..., G), we have
+
+        $$log(\mu_i) = \alpha + \beta X_i + \epsilon_i \text{ with } \epsilon_i \sim N(0, \gamma^2)$$
+
+        $$Y_{ij}|\mu_i \sim Poisson(\mu_i)$$
+
+-   **Estimand:** The primary estimand for both outcome types is the treatment effect $\beta$, the difference in the expected outcome between the treatment and the control groups.
+
+-   **Methods:** We identify a fixed budget limit value $B = \$10,000$ for all simulation scenarios, and the cost for the first sample in each cluster is fixed at $c_1 = \$20$ as well. To evaluate the trade-offs between G and R, we varied G and the cost ratio $c_1/c_2$. The total cost for each design was calculated using the following formula:
+
+$$Total\ Cost = G \times c_1 + G \times (R - 1) \times c_2$$
+
+To satisfy the budget constraint, the total cost should be restricted to:
+
+$$\text{Total cost } \leq B$$
+
+Using these criteria, we computed the maximum feasible number of observations per clusters (R) for each pair of G and $c_1/c_2$. For each combination of G, R, and cost ratio, we generated data for 100 iterations and fit a hierarchical model on each to identify the optimal design which maximizes precision within the budget constraints.
+
+Additionally, using the identified optimal design, we further varied key data generation parameters ($\gamma^2$, $\sigma^2$, $\alpha$, and $\beta$) independently to explore their influence on model precision. Data were generated for 100 iterations under each parameter variation, and a hierarchical model was applied to investigate the impact. Similar steps are performed with Poisson-distributed outcomes. The result section would introduce more detailed steps.
+
+-   **Performance Measures:** The primary measures of performance is the variance of the treatment effect estimate, which reflects the precision of the estimate. We also incorporate metrics like bias, MSE, and coverage to provide a more comprehensive evaluation of our models.
+
+## Normal Distributed Outcome
+
+## Vary G, R, c1/c2
+
+```{r}
+summary_metrics_df <- read.csv("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Practical-Data-Analysis-Portfolio/Project3/Table Results/summary_metrics_df.csv")
+varyGR_summary <- summary_metrics_df %>%
+  dplyr::select(G, R, c1c2_ratio, beta_variance, beta_bias, mse, coverage)
+
+varyGR_summary %>%
+  filter(c1c2_ratio == 10) %>%
+  kable(col.names = c("Number of Cluster (G)", "Number of Observations per Cluster (R)",
+                      "Cost Ratio (c1/c2)", "Beta Variance", "Beta Bias", "MSE", "Coverage"),
+        booktabs = TRUE, caption = "Metrics Summary Varying Number of Clusters") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+
+varyGR_summary %>%
+  filter(G == 20) %>%
+  kable(col.names = c("Number of Cluster (G)", "Number of Observations per Cluster (R)",
+                      "Cost Ratio (c1/c2)", "Beta Variance", "Beta Bias", "MSE", "Coverage"),
+        booktabs = TRUE, caption = "Metrics Summary Varying Cost Ratio") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+```
+
+```{r, out.width = "80%"}
+# plot of G vs. beta variance
+ggplot(summary_metrics_df, aes(x = G, y = beta_variance, color = as.factor(c1c2_ratio))) +
+  geom_point(size = 2) +
+  geom_line(size = 0.5, linetype = "dashed") +
+  labs(title = "Beta Variance by Number of Clusters (G)", 
+       x = "Number of Clusters (G)", 
+       y = "Beta Variance",
+       color = "Cost Ratio (c1/c2)") +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        strip.text = element_text(size = 6))
+
+# plot of R vs. beta variance 
+ggplot(summary_metrics_df) +
+  facet_wrap(~ G) + 
+  geom_point(aes(x = R, y = beta_variance, color = as.factor(c1c2_ratio)), size = 2) +
+  geom_line(aes(x = R, y = beta_variance), size = 0.5, linetype = "dashed") + 
+  labs(title = "Beta Variance by R for Different G", 
+       x = "Number of Individuals per Cluster (R)", 
+       y = "Beta Variance",
+       color = "Cost Ratio (c1/c2)") +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        strip.text = element_text(size = 6),
+        legend.position = "bottom")
+
+```
+
+## Vary gamma_sq
+
+```{r}
+summary_metrics_df_gamma <- read.csv("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Practical-Data-Analysis-Portfolio/Project3/Table Results/summary_metrics_df_gamma.csv")
+summary_metrics_df_gamma <- summary_metrics_df_gamma %>%
+  dplyr::select(-c(G, R, c1, c2, c1c2_ratio, total_cost))
+
+summary_metrics_df_gamma %>%
+  kable(col.names = c("Baseline Mean", "Treatment Effect", "Between-cluster Variance", 
+                      "Within-cluster Variance", "Beta Estimate", "Beta Variance", "Beta Bias", "MSE", "Coverage"), 
+        booktabs = TRUE, caption = "Metrics Summary Varying Between-cluster Variance") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+```
+
+## Vary sigma_sq
+
+```{r}
+summary_metrics_df_sigma <- read.csv("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Practical-Data-Analysis-Portfolio/Project3/Table Results/summary_metrics_df_sigma.csv")
+summary_metrics_df_sigma <- summary_metrics_df_sigma %>%
+  dplyr::select(-c(G, R, c1, c2, c1c2_ratio, total_cost))
+
+summary_metrics_df_sigma %>%
+  kable(col.names = c("Baseline Mean", "Treatment Effect", "Between-cluster Variance", 
+                      "Within-cluster Variance", "Beta Estimate", "Beta Variance", "Beta Bias", "MSE", "Coverage"), 
+        booktabs = TRUE, caption = "Metrics Summary Varying Within-cluster Variance") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+```
+
+## Poisson Distributed Y
+
+```{r}
+summary_metrics_df_poisson <- read.csv("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Practical-Data-Analysis-Portfolio/Project3/Table Results/summary_metrics_df_poisson.csv")
+
+# plot of G vs. beta variance
+ggplot(summary_metrics_df_poisson, aes(x = G, y = beta_variance, color = as.factor(c1c2_ratio))) +
+  geom_point(size = 2) +
+  geom_line(size = 0.5, linetype = "dashed") +
+  labs(title = "Beta Variance by Number of Clusters (G)", 
+       x = "Number of Clusters (G)", 
+       y = "Beta Variance",
+       color = "Cost Ratio (c1/c2)") +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        strip.text = element_text(size = 6))
+
+# plot of R vs. beta variance 
+ggplot(summary_metrics_df_poisson) +
+  facet_wrap(~ G) + 
+  geom_point(aes(x = R, y = beta_variance, color = as.factor(c1c2_ratio)), size = 2) +
+  geom_line(aes(x = R, y = beta_variance), size = 0.5, linetype = "dashed") + 
+  labs(title = "Beta Variance by R for Different G", 
+       x = "Number of Individuals per Cluster (R)", 
+       y = "Beta Variance",
+       color = "Cost Ratio (c1/c2)") +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 6),
+        title = element_text(size = 6),
+        axis.text = element_text(size = 6),
+        legend.title = element_text(size = 5),
+        legend.text = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        strip.text = element_text(size = 6),
+        legend.position = "bottom")
+```
+
+# Vary gamma_sq
+
+```{r}
+
+```
+
+# Reference
+
+# Results
+
+# Discussion
+
+\newpage
+
+```{r ref.label = knitr::all_labels()}
+#| echo: false
+#| eval: false
+```
+
+# Reference
