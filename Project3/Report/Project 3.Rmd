@@ -48,7 +48,7 @@ We would consider settings where Y is normally distributed and where Y follows a
 
         $$Y_{ij} = \mu_i + e_{ij} \text{ with } e_{ij} \sim iid\ N(0, \sigma^2) \text{, that is } Y_{ij}|\mu_i \sim N(\mu_i, \sigma^2)$$
 
-        Here, $\alpha$ indicates the baseline mean value while $\beta$ represents the treatment effect. $\gamma^2$ refers to the between-cluster variability and $\sigma^2$ represents the within-cluster variability.
+        Here, $\alpha$ represents the baseline mean value while $\beta$ represents the treatment effect. $\gamma^2$ indicates the between-cluster variability and $\sigma^2$ captures the within-cluster variability.
 
     -   Poisson Distributed Outcomes:
 
@@ -60,23 +60,37 @@ We would consider settings where Y is normally distributed and where Y follows a
 
 -   **Estimand:** The primary estimand for both outcome types is the treatment effect $\beta$, the difference in the expected outcome between the treatment and the control groups.
 
--   **Methods:** We identify a fixed budget limit value $B = \$10,000$ for all simulation scenarios, and the cost for the first sample in each cluster is fixed at $c_1 = \$20$ as well. To evaluate the trade-offs between G and R, we varied G and the cost ratio $c_1/c_2$. The total cost for each design was calculated using the following formula:
+-   **Methods:** We identify a fixed budget limit value $B = \$10,000$ for all simulation scenarios, and the cost for the first sample in each cluster fixed at $c_1 = \$20$. To evaluate the trade-offs between G and R, we varied G and the cost ratio $c_1/c_2$. The total cost for each design was calculated using the following formula:
 
-$$Total\ Cost = G \times c_1 + G \times (R - 1) \times c_2$$
+    $$Total\ Cost = G \times c_1 + G \times (R - 1) \times c_2$$
 
-To satisfy the budget constraint, the total cost should be restricted to:
+    To satisfy the budget constraint, the total cost should be restricted to:
 
-$$\text{Total cost } \leq B$$
+    $$\text{Total cost } \leq B$$
 
-Using these criteria, we computed the maximum feasible number of observations per clusters (R) for each pair of G and $c_1/c_2$. For each combination of G, R, and cost ratio, we generated data for 100 iterations and fit a hierarchical model on each to identify the optimal design which maximizes precision within the budget constraints.
+    Using these criteria, we computed the maximum feasible number of observations per clusters (R) for each pair of G and $c_1/c_2$. For each combination of G, R, and cost ratio, we generated data for 100 iterations and fit a hierarchical model on each to identify the optimal design which maximizes precision within the budget constraints.
 
-Additionally, using the identified optimal design, we further varied key data generation parameters ($\gamma^2$, $\sigma^2$, $\alpha$, and $\beta$) independently to explore their influence on model precision. Data were generated for 100 iterations under each parameter variation, and a hierarchical model was applied to investigate the impact. Similar steps are performed with Poisson-distributed outcomes. The result section would introduce more detailed steps.
+    Additionally, using the identified optimal design, we further varied key data generation parameters ($\gamma^2$, $\sigma^2$, $\alpha$, and $\beta$) independently to explore their influence on model precision. Data were generated for 100 iterations under each parameter variation, and a hierarchical model was applied to investigate the impact. Similar steps are performed for Poisson-distributed outcomes. The Results section will detail these steps further and provide insights from the simulations.
 
 -   **Performance Measures:** The primary measures of performance is the variance of the treatment effect estimate, which reflects the precision of the estimate. We also incorporate metrics like bias, MSE, and coverage to provide a more comprehensive evaluation of our models.
 
-## Normal Distributed Outcome
+# Results
 
-## Vary G, R, c1/c2
+To facilitate data simulation under various scenarios, we developed custom data simulation functions for both normally distributed and the Poisson-distributed outcomes which allow flexible specification of key parameters, such as G, $\beta$, $\gamma^2$, and $\sigma^2$. These functions are located in the `Data Simulation.R` script within the `R` folder of the project directory. In addition, we developed custom experiment functions for each outcome distribution located in the `Experiment.R` script within the `R` folder of the project directory. These functions take the simulated data, fit the appropriate model, and calculate performance metrics, such as variance, bias, mean squared error (MSE), and coverage, across scenarios. This approach ensures a reproducible process for simulation, modeling, and model performance evaluation across diverse experimental designs.
+
+## Normally Distributed Outcome
+
+## Vary G, R, and Cost Ratio
+
+Start with normally distributed outcome, we explore a range of design scenarios by varying number of clusters (G = 5, 10, 15, 20, 25, 30) and cost ratios ($c_1/c_2$ = 2, 5, 10, 20). The underlying data generation parameters were fixed ($\alpha = 0$, $\beta = 1.5$, $\gamma^2 = 1$, and $\sigma^2$ = 1), with a budget limit of B = \$10,000 and the cost of the first sample in each cluster set at $c_1 =$\$20.
+
+For each scenario, utilizing the data simulation function, the maximum feasible R was calculated based on the budget and the cost structure of our design. Clusters were randomly assigned to treatment or control groups in each iteration, ensuring representation of both groups, and outcomes were simulated using the hierarchical model for normally distributed data. The simulated datasets were saved as CSV files in the `Data_normal` folder for further analysis. Each data was then processed through our experiment function, where a hierarchical model was fit using the `lmer()` function from the `lmerTest` package. All performance metrics, including variance, bias, MSE, and coverage, were calculated and  saved in the `Results_normal` folder for further evaluation.
+
+From the range of design scenarios explored, we selected key results to present our key findings shown in `Table 1` and `Table 2`. The full results located within the `Table Results` folder, denoted as `summart_metrics_df.csv`. B, R, and the cost ratio are relatively interact with each other under fixed budget limit. With the same cost ratio, larger number of clusters groups results less number of observations in each cluster. Similarly, with fixed number of cluster, higher cost ratio allows for more observations in each cluster. 
+
+Observing `Table 1`, keeping the cost ratio constant, increasing the number of clusters decreases the number of observations in each cluster. The variance of $\beta$ decreased substantially with higher G, dropping from 0.996 at G = 5 to 0.147 at G = 30, indicating improved precision with more clusters. Bias remains relative low across scenarios, with a maximum of 0.172 at G = 10 and a minimum value of 0.027 at G = 25. MSE decreased consistently as G increased while coverage gradually improved with higher G. 
+
+Additionally, in `Table 2`, keeping the number of cluster fixed at 20, the number of observations in each cluster as the cost ratio becomes higher. The variance of $\beta$ and MSE slightly decreases as the cost ratio increases, indicating improved precision. Bias remains low without a clear trend while the coverage improved consistently as the cost ratio increases.
 
 ```{r}
 summary_metrics_df <- read.csv("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Practical-Data-Analysis-Portfolio/Project3/Table Results/summary_metrics_df.csv")
@@ -88,94 +102,180 @@ varyGR_summary %>%
   kable(col.names = c("Number of Cluster (G)", "Number of Observations per Cluster (R)",
                       "Cost Ratio (c1/c2)", "Beta Variance", "Beta Bias", "MSE", "Coverage"),
         booktabs = TRUE, caption = "Metrics Summary Varying Number of Clusters") %>%
-  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "3cm") %>% 
+  column_spec(2, width = "3cm") %>%
+  column_spec(3, width = "2cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1cm") %>%
+  column_spec(6, width = "1cm") %>%
+  column_spec(7, width = "1cm")
 
 varyGR_summary %>%
   filter(G == 20) %>%
   kable(col.names = c("Number of Cluster (G)", "Number of Observations per Cluster (R)",
                       "Cost Ratio (c1/c2)", "Beta Variance", "Beta Bias", "MSE", "Coverage"),
         booktabs = TRUE, caption = "Metrics Summary Varying Cost Ratio") %>%
-  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "3cm") %>% 
+  column_spec(2, width = "3cm") %>%
+  column_spec(3, width = "2cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1cm") %>%
+  column_spec(6, width = "1cm") %>%
+  column_spec(7, width = "1cm")
 ```
 
-```{r, out.width = "80%"}
+Similar findings can be observed from `Figure 1` and `Figure 2`. The variance of $\beta$ decreases sharply with increasing G, specifically for smaller number of clusters with $G \leq 15$. Variance trends are consistent across different cost ratios, with minor differences at higher cluster counts. In addition, observing `Figure 2`, for certain values of G (G = 5, 15, 25), the variance of $\beta$ initially decreases as R increases. However, once R surpasses a certain threshold, a slight increase in variance is observed.
+
+```{r, out.width = "80%", fig.align = "center"}
 # plot of G vs. beta variance
 ggplot(summary_metrics_df, aes(x = G, y = beta_variance, color = as.factor(c1c2_ratio))) +
   geom_point(size = 2) +
   geom_line(size = 0.5, linetype = "dashed") +
-  labs(title = "Beta Variance by Number of Clusters (G)", 
-       x = "Number of Clusters (G)", 
+  labs(title = "Figure 1: Beta Variance by Number of Clusters (G)",
+       x = "Number of Clusters (G)",
        y = "Beta Variance",
        color = "Cost Ratio (c1/c2)") +
   theme_minimal() +
-  theme(axis.title = element_text(size = 6),
-        title = element_text(size = 6),
-        axis.text = element_text(size = 6),
-        legend.title = element_text(size = 5),
-        legend.text = element_text(size = 5),
+  theme(axis.title = element_text(size = 7),
+        title = element_text(size = 8),
+        axis.text = element_text(size = 7),
+        legend.title = element_text(size = 7),
+        legend.text = element_text(size = 7),
         legend.key.size = unit(0.3, "cm"),
-        strip.text = element_text(size = 6))
+        strip.text = element_text(size = 6),
+        legend.position = "bottom")
+```
 
-# plot of R vs. beta variance 
+```{r, out.width = "70%", fig.align = "center"}
+# plot of R vs. beta variance
 ggplot(summary_metrics_df) +
-  facet_wrap(~ G) + 
+  facet_wrap(~ G) +
   geom_point(aes(x = R, y = beta_variance, color = as.factor(c1c2_ratio)), size = 2) +
-  geom_line(aes(x = R, y = beta_variance), size = 0.5, linetype = "dashed") + 
-  labs(title = "Beta Variance by R for Different G", 
-       x = "Number of Individuals per Cluster (R)", 
+  geom_line(aes(x = R, y = beta_variance), size = 0.5, linetype = "dashed") +
+  labs(title = "Figure 2: Beta Variance vs. R by Different G",
+       x = "Number of Individuals per Cluster (R)",
        y = "Beta Variance",
        color = "Cost Ratio (c1/c2)") +
   theme_minimal() +
-  theme(axis.title = element_text(size = 6),
-        title = element_text(size = 6),
-        axis.text = element_text(size = 6),
-        legend.title = element_text(size = 5),
-        legend.text = element_text(size = 5),
+  theme(axis.title = element_text(size = 7),
+        title = element_text(size = 8),
+        axis.text = element_text(size = 7),
+        legend.title = element_text(size = 7),
+        legend.text = element_text(size = 7),
         legend.key.size = unit(0.3, "cm"),
         strip.text = element_text(size = 6),
         legend.position = "bottom")
 
 ```
 
-## Vary gamma_sq
+Comparing the results across all combinations of design parameters, we identified the design with G = 30, R = 79, and cost ratio = 5 as the optimal configuration. This design exhibits the lowest variance of $\beta$ and relatively lower values for other performance metrics, as shown in `Table 3`. The following variation on underlying data generation parameters would be based on this scenario. 
+
+
+```{r}
+varyGR_summary %>%
+  filter(G == 30 & c1c2_ratio == 5) %>%
+  kable(col.names = c("Number of Cluster (G)", "Number of Observations per Cluster (R)",
+                      "Cost Ratio (c1/c2)", "Beta Variance", "Beta Bias", "MSE", "Coverage"),
+        booktabs = TRUE, caption = "Metrics Summary Varying Cost Ratio") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "3cm") %>% 
+  column_spec(2, width = "3cm") %>%
+  column_spec(3, width = "2cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1cm") %>%
+  column_spec(6, width = "1cm") %>%
+  column_spec(7, width = "1cm")
+```
+
+## Vary Between-cluster Variance
+
+Starting from varying between-cluster variance ($\gamma^2$), we keep other parameters constant ($\alpha = 0$, $\beta = 1.5$, and $\sigma^2$ = 1). Considering instra-cluster correlation (ICC), defined as:
+$$ICC = \frac{\gamma^2}{\gamma^2 + \sigma^2}$$
+
+We create scenarios with difference ICC values to investigate the impact of between-cluster variability on performance metrics. By varying $\gamma^2$, we systematically adjusted the ICC to represent low, moderate, and high levels of between-cluster correlation. This allowed us to explore how increased clustering affects the precision and bias of the treatment effect estimate ($\beta$) across various design configurations.
+
+- Low ICC: $\gamma^2 = 0.111$, $ICC = \frac{0.111}{0.111 + 1} = 0.1$
+
+- Medium ICC: $\gamma^2 = 1$, $ICC = \frac{1}{1 + 1} = 0.5$
+
+- High ICC: $\gamma^2 = 10$, $ICC = \frac{10}{10 + 1} = 0.9090$
+
 
 ```{r}
 summary_metrics_df_gamma <- read.csv("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Practical-Data-Analysis-Portfolio/Project3/Table Results/summary_metrics_df_gamma.csv")
 summary_metrics_df_gamma <- summary_metrics_df_gamma %>%
-  dplyr::select(-c(G, R, c1, c2, c1c2_ratio, total_cost))
+  dplyr::select(-c(G, R, c1, c2, c1c2_ratio, total_cost,alpha, beta))
 
 summary_metrics_df_gamma %>%
-  kable(col.names = c("Baseline Mean", "Treatment Effect", "Between-cluster Variance", 
-                      "Within-cluster Variance", "Beta Estimate", "Beta Variance", "Beta Bias", "MSE", "Coverage"), 
+  kable(col.names = c("Between-cluster Variance", "Within-cluster Variance",
+                      "Beta Estimate", "Beta Variance", "Beta Bias", "MSE", "Coverage"),
         booktabs = TRUE, caption = "Metrics Summary Varying Between-cluster Variance") %>%
-  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "3cm") %>% 
+  column_spec(2, width = "3cm") %>%
+  column_spec(3, width = "2cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1cm") %>%
+  column_spec(6, width = "1cm") %>%
+  column_spec(7, width = "1cm")
 ```
 
-## Vary sigma_sq
+In `Table 4`, fixing within-cluster variance, the estimated treatment effect remains close to the true value, 1.5. The variance of $\beta$ increases substantially as $\gamma^2$ increases, indicating reduced precision with higher between-cluster variability. The bias increases slightly as $\gamma^2$ increase as well, with a maximum value of 0.1498 at $\gamma^2 = 10$. Additionally, the MSE increases with higher $\gamma^2$ and the coverage remains around 95%-96% for lower $\gamma^2$ while decreases slightly to 91% at $\gamma^2 = 10$. A larger $\gamma^2$ indicates greater variability between clusters, meaning clusters differ more significantly from each other. This increased variability makes it harder to isolate the treatment effect from the random effects introduced by the cluster differences, thereby reducing the precision of the treatment effect estimate.
+
+## Vary Within-cluster Variance
+
+To vary the within-cluster Variance ($\sigma^2$), we remain other parameter constant ($\alpha = 0$, $\beta = 1.5$, and $\gamma^2$ = 1). Again, we decided the variance value based on the ICC levels:
+
+- Low ICC: $\sigma^2 = 9$, $ICC = \frac{1}{1 + 9} = 0.1$
+
+- Medium ICC: $\sigma^2 = 1$, $ICC = \frac{1}{1 + 1} = 0.5$
+
+- High ICC: $\sigma^2 = 0.111$, $ICC = \frac{1}{1 + 0.111} = 0.9001$
+
 
 ```{r}
 summary_metrics_df_sigma <- read.csv("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Practical-Data-Analysis-Portfolio/Project3/Table Results/summary_metrics_df_sigma.csv")
 summary_metrics_df_sigma <- summary_metrics_df_sigma %>%
-  dplyr::select(-c(G, R, c1, c2, c1c2_ratio, total_cost))
+  dplyr::select(-c(G, R, c1, c2, c1c2_ratio, total_cost, alpha, beta))
 
 summary_metrics_df_sigma %>%
-  kable(col.names = c("Baseline Mean", "Treatment Effect", "Between-cluster Variance", 
-                      "Within-cluster Variance", "Beta Estimate", "Beta Variance", "Beta Bias", "MSE", "Coverage"), 
+  kable(col.names = c("Between-cluster Variance", "Within-cluster Variance", 
+                      "Beta Estimate", "Beta Variance", "Beta Bias", "MSE", "Coverage"),
         booktabs = TRUE, caption = "Metrics Summary Varying Within-cluster Variance") %>%
-  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "3cm") %>% 
+  column_spec(2, width = "3cm") %>%
+  column_spec(3, width = "2cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1cm") %>%
+  column_spec(6, width = "1cm") %>%
+  column_spec(7, width = "1cm")
 ```
 
-## Poisson Distributed Y
+In `Table 5`, we observed that as the within-cluster variance increase, the estimated treatment effect is still close to the true value while the variance of $\beta$ exhibits a slight increase, same for the MSE. Bias presents a increasing tread as $\sigma^2$ increases while the coverage remains consistent. A lower within-cluster variance suggests that members within a cluster are more similar to each other, leading to reduced noise in the data and more precise estimates of the treatment effect.
+
+In conclusion, with normally distributed outcome, our findings demonstrate the effect of design parameters and variance components in cluster randomized trials. Increasing the number of cluster improves the precision of the treatment effect estimate. Additionally, higher between-cluster variance reduces precision. Conversely, lower within-cluster variability enhances precision. We did not observe obvious trend on variance as we varied the baseline mean value ($\alpha$) and the treatment effect ($\beta$). The baseline mean value represents the overall average outcome. Changing in this would shift the outcome distribution but would not affect the variability in the data. Similarly, although $\beta$ represents the magnitude of the treatment effect, it would not directly affect the variance of $\beta$. These insights underscore the importance of carefully balancing design parameters and variance components to achieve reliable and precise treatment effect estimates. 
+
+# Poisson Distributed Y
+
+## Vary G, R, and Cost Ratio
+Extending our analysis to the Poisson Distributed outcome, we explore a range of design scenarios by varying number of clusters (G = 5, 10, 15, 20, 25, 30) and cost ratios ($c_1/c_2$ = 2, 5, 10, 20). The underlying data generation parameters were fixed ($\alpha = 0$, $\beta = 1.5$, $\gamma^2 = 1$, and $\sigma^2$ = 1), with a budget limit of B = \$10,000 and the cost of the first sample in each cluster set at $c_1 =$\$20. Performing same steps as normally distributed outcomes, simulated data are located in the `Data_possion` folder and the performance metrics results were stored in the `Results_poisson` folder.
+
+`Figure 3` exhibits similar findings as we observed for the normal distributed outcome. Increasing G substantially reduces the treatment effect variance, particularly for smaller G values. Additionally, various cost ratio does not present obvious effect on the model precision. In `Figure 4`, when we fixed the number of clusters, we observed that the treatment effect variance shows a slight decreasing trend as R increases.
 
 ```{r}
 summary_metrics_df_poisson <- read.csv("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Practical-Data-Analysis-Portfolio/Project3/Table Results/summary_metrics_df_poisson.csv")
+```
 
+```{r, out.width = "80%", fig.align = "center"}
 # plot of G vs. beta variance
 ggplot(summary_metrics_df_poisson, aes(x = G, y = beta_variance, color = as.factor(c1c2_ratio))) +
   geom_point(size = 2) +
   geom_line(size = 0.5, linetype = "dashed") +
-  labs(title = "Beta Variance by Number of Clusters (G)", 
-       x = "Number of Clusters (G)", 
+  labs(title = "Figure 3: Beta Variance by Number of Clusters (G)",
+       x = "Number of Clusters (G)",
        y = "Beta Variance",
        color = "Cost Ratio (c1/c2)") +
   theme_minimal() +
@@ -186,14 +286,16 @@ ggplot(summary_metrics_df_poisson, aes(x = G, y = beta_variance, color = as.fact
         legend.text = element_text(size = 5),
         legend.key.size = unit(0.3, "cm"),
         strip.text = element_text(size = 6))
+```
 
-# plot of R vs. beta variance 
+```{r, out.width = "80%", fig.align = "center"}
+# plot of R vs. beta variance
 ggplot(summary_metrics_df_poisson) +
-  facet_wrap(~ G) + 
+  facet_wrap(~ G) +
   geom_point(aes(x = R, y = beta_variance, color = as.factor(c1c2_ratio)), size = 2) +
-  geom_line(aes(x = R, y = beta_variance), size = 0.5, linetype = "dashed") + 
-  labs(title = "Beta Variance by R for Different G", 
-       x = "Number of Individuals per Cluster (R)", 
+  geom_line(aes(x = R, y = beta_variance), size = 0.5, linetype = "dashed") +
+  labs(title = "Figure 4: Beta Variance by R for Different G",
+       x = "Number of Individuals per Cluster (R)",
        y = "Beta Variance",
        color = "Cost Ratio (c1/c2)") +
   theme_minimal() +
@@ -207,17 +309,67 @@ ggplot(summary_metrics_df_poisson) +
         legend.position = "bottom")
 ```
 
-# Vary gamma_sq
+Comparing the results across all combinations of design parameters, the design with G = 30, R = 79, and cost ratio = 5 still exhibits to be the optimal. This design exhibits the lowest variance of $\beta$ and relatively lower values for other performance metrics, as shown in `Table 6`. The following variation on underlying data generation parameters would be based on this scenario. 
 
 ```{r}
+varyGR_summary_poisson <- summary_metrics_df_poisson %>% 
+  dplyr::select(G, R, c1c2_ratio, beta_variance, beta_bias, mse, coverage)
 
+varyGR_summary_poisson %>% 
+  filter(G == 30 & c1c2_ratio == 5) %>%
+  kable(col.names = c("Number of Cluster (G)", "Number of Observations per Cluster (R)",
+                      "Cost Ratio (c1/c2)", "Beta Variance", "Beta Bias", "MSE", "Coverage"),
+        booktabs = TRUE, caption = "Metrics Summary Varying Cost Ratio") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "3cm") %>% 
+  column_spec(2, width = "3cm") %>%
+  column_spec(3, width = "2cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1cm") %>%
+  column_spec(6, width = "1cm") %>%
+  column_spec(7, width = "1cm")
 ```
 
-# Reference
+## Vary Between-cluster Variance
 
-# Results
+To explore the impact of varying between-cluster variances $\gamma^2$ on model performance, we kept other parameters consistent ($\alpha = 0$, $\beta = 1.5$). Considering the intra-cluster correlation (ICC), defined as:
+
+$$ICC = \frac{\gamma^2}{\gamma^2 + \mu}$$ 
+$\mu$ represents the baseline mean outcome where given $\alpha = 0$, $\mu = exp(\alpha) = 1$. We adjust $\gamma^2$ to represents different levels of ICC:
+
+- Low ICC: $\gamma^2 = 0.111$, $ICC = \frac{0.111}{0.111 + 1} = 0.1$
+
+- Medium ICC: $\gamma^2 = 1$, $ICC = \frac{1}{1 + 1} = 0.5$
+
+- High ICC: $\gamma^2 = 10$, $ICC = \frac{10}{10 + 1} = 0.909$
+
+
+```{r}
+summary_metrics_df_poisson_gamma <- read.csv("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Practical-Data-Analysis-Portfolio/Project3/Table Results/summary_metrics_df_poisson_gamma.csv")
+summary_metrics_df_poisson_gamma <- summary_metrics_df_poisson_gamma %>%
+  dplyr::select(-c(G, R, c1, c2, c1c2_ratio, total_cost, alpha, beta))
+
+summary_metrics_df_poisson_gamma %>%
+  kable(col.names = c("Between-cluster Variance", "Beta Estimate", "Beta Variance", "Beta Bias", "MSE", "Coverage"),
+        booktabs = TRUE, caption = "Metrics Summary Varying Between-cluster Variance") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "3cm") %>% 
+  column_spec(2, width = "3cm") %>%
+  column_spec(3, width = "2cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1cm") %>%
+  column_spec(6, width = "1cm")
+```
+
+`Table 7` summarizes the impact of varying the between-cluster variance on the treatment effect estimate and associated performance metrics. The estimated treatment effect remains close to the true value of 1.5 with lower $\gamma^2$ but decreases as $\gamma^2$ increases. In addition, the variance of $\beta$ increases substantially as $\gamma^2$ grows, indicating reduced precision. Both bias and MSE exhibits an increasing trend while coverage decreases as the between-cluster variability increases.
+
+## Vary Baseline Mean
+
+## Vary Treatment Effect
+
 
 # Discussion
+
 
 \newpage
 

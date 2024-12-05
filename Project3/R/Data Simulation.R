@@ -157,7 +157,7 @@ for (G in G_list) {
 alpha <- 0
 beta <- 1.5
 sigma_sq <- 1
-gamma_sq_list <- seq(0.5, 3, by = 0.5)
+gamma_sq_list <- c(0.111, 1, 10)
 B <- 10000
 G <- 30
 R <- 79
@@ -178,7 +178,7 @@ for (gamma_sq in gamma_sq_list) {
 
 alpha <- 0
 beta <- 1.5
-sigma_sq_list <- seq(0.5, 3, by = 0.5)
+sigma_sq_list <- c(9, 1, 0.111)
 gamma_sq <- 1
 B <- 10000
 G <- 30
@@ -224,12 +224,12 @@ for (G in G_list) {
 alpha <- 0
 beta <- 1.5
 B <- 10000
-gamma_sq_list <- seq(0.5, 3, by = 0.5)
+gamma_sq_list <- c(0.111, 1, 10)
 G <- 30
-R <- 32
+R <- 79
 niter <- 100
 c1 <- 20
-c1c2_ratio <- 2
+c1c2_ratio <- 5
 
 for (gamma_sq in gamma_sq_list) {
   result_df <- simulate_data_poisson(G, alpha, beta, gamma_sq, c1, c1c2_ratio, B, niter,
@@ -240,12 +240,12 @@ for (gamma_sq in gamma_sq_list) {
 
 ## Vary alpha
 
-alpha_list <- seq(-3, 3, 1)
+alpha_list <- seq(0, 10, 2)
 beta <- 1.5
 B <- 10000
 gamma_sq <- 1
-G <- 25
-R <- 96
+G <- 30
+R <- 79
 niter <- 100
 c1 <- 20
 c1c2_ratio <- 5
@@ -260,11 +260,11 @@ for (alpha in alpha_list) {
 ## vary beta
 
 alpha <- 0
-beta_list <- c(-3, -2, -1, 1, 2, 3)
+beta_list <- seq(1, 11, 2)
 B <- 10000
 gamma_sq <- 1
-G <- 25
-R <- 96
+G <- 30
+R <- 79
 niter <- 100
 c1 <- 20
 c1c2_ratio <- 5
