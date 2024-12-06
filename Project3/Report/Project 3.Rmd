@@ -1,5 +1,5 @@
 ---
-title: "A Comprehensive Simulation Study of Optimal Design Strategies for Cluster Randomized Trials with Budgetary Limitations"
+title: "A Simulation Study of Optimal Design Strategies for Cluster Randomized Trials with Budgetary Limitations"
 author: Yingxi Kong
 output:
   pdf_document
