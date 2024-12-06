@@ -71,7 +71,7 @@ Additionally, race emerged as both a predictor and moderator, with Non-Hispanic 
 - `references.bib`: Reference list file
 - `apa-numeric-superscript.csl`: Reference Style csl.
  
-
+### Dependencies
 The following R version and packages are used in this analysis. Ensure that they are installed and loaded to successfully run the code:
 - **R version**: 4.3.1 (2023-06-16)
     - **Platform**: x86_64-w64-mingw32/x64 (64-bit)
@@ -111,16 +111,15 @@ Using the ADEMP framework, we design a comprehensive simulation study to evaluat
 For both outcome types, increasing the number of clusters improved precision by reducing the variance of treatment effect estimates, particularly for smaller G. Optimal designs included G = 30, R = 79, and c1/c2 = 5 for normally distributed outcomes, and G = 30, R = 314, and c1/c2 = 20 for Poisson outcomes. Higher between-cluster variance γ2 were associated with increased variance and reduced coverage for both cases, indicating lower precision in treatment effect estimates. Moreover, for Poisson-distributed outcomes, a higher baseline mean also increased variance and lowered coverage.
 
 ### Folders
+- `Data_normal:` Simulated normally distributed outcome data
+- `Data_poisson:` Simulated Poisson-distributed outcome data
+- `Results_normal:` Model results and performance metrics for normally distributed outcome data
+- `Results_poisson:` Model results and performance metrics for Poisson-distributed outcome data
+- `R:` R script for data simulation and model experiment functions
+- `Report:` The Rmarkdown and pdf version of this simulation study's report
+- `Table Results:` Combined full table results from the model
 
-- Data_normal: Simulated normally distributed outcome data
-- Data_poisson: Simulated Poisson-distributed outcome data
-- Results_normal: Model results and performance metrics for normally distributed outcome data
-- Results_poisson: Model results and performance metrics for Poisson-distributed outcome data
-- R: R script for data simulation and model experiment functions
-- Report: The Rmarkdown and pdf version of this simulation study's report
-- Table Results: Combined full table results from the model
-
-
+### Dependencies
 The following R version and packages are used in this analysis. Ensure that they are installed and loaded to successfully run the code:
 - **R version**: 4.3.1 (2023-06-16)
     - **Platform**: x86_64-w64-mingw32/x64 (64-bit)
