@@ -143,7 +143,7 @@ niter <- 100
 c1 <- 20
 c1c2_ratio <- 5
 
-gamma_sq_list <- c(0.111, 1, 10)
+gamma_sq_list <- c(0.111, 1, 9)
 summary_metrics_df_gamma <- data.frame()
 for (gamma_sq in gamma_sq_list) {
   c2 <- c1 / c1c2_ratio
@@ -236,10 +236,10 @@ beta <- 1.5
 B <- 10000
 gamma_sq_list <- c(0.111, 1, 10)
 G <- 30
-R <- 79
+R <- 314
 niter <- 100
 c1 <- 20
-c1c2_ratio <- 5
+c1c2_ratio <- 20
 
 summary_metrics_df_poisson_gamma <- data.frame()
 for (gamma_sq in gamma_sq_list) {
@@ -267,10 +267,10 @@ beta <- 1.5
 B <- 10000
 gamma_sq <- 1
 G <- 30
-R <- 79
+R <- 314
 niter <- 100
 c1 <- 20
-c1c2_ratio <- 5
+c1c2_ratio <- 20
 
 summary_metrics_df_poisson_alpha <- data.frame()
 for (alpha in alpha_list) {
@@ -294,9 +294,9 @@ write.csv(summary_metrics_df_poisson_alpha,
 ## vary beta
 
 alpha <- 0
-beta_list <- seq(1, 11, 2)
+beta_list <- seq(1, 5, 1)
 B <- 10000
-gamma_sq <- 1
+gamma_sq <- 2
 G <- 30
 R <- 79
 niter <- 100

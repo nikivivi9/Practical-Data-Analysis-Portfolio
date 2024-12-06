@@ -157,7 +157,7 @@ for (G in G_list) {
 alpha <- 0
 beta <- 1.5
 sigma_sq <- 1
-gamma_sq_list <- c(0.111, 1, 10)
+gamma_sq_list <- c(0.111, 1, 9)
 B <- 10000
 G <- 30
 R <- 79
@@ -199,6 +199,7 @@ for (sigma_sq in sigma_sq_list) {
 # Poisson Distributed Y
 
 ## vary G, R, c1/c2
+set.seed(2550)
 alpha <- 0
 beta <- 1.5
 gamma_sq <- 1
@@ -226,10 +227,10 @@ beta <- 1.5
 B <- 10000
 gamma_sq_list <- c(0.111, 1, 10)
 G <- 30
-R <- 79
+R <- 314
 niter <- 100
 c1 <- 20
-c1c2_ratio <- 5
+c1c2_ratio <- 20
 
 for (gamma_sq in gamma_sq_list) {
   result_df <- simulate_data_poisson(G, alpha, beta, gamma_sq, c1, c1c2_ratio, B, niter,
@@ -245,10 +246,10 @@ beta <- 1.5
 B <- 10000
 gamma_sq <- 1
 G <- 30
-R <- 79
+R <- 314
 niter <- 100
 c1 <- 20
-c1c2_ratio <- 5
+c1c2_ratio <- 20
 
 for (alpha in alpha_list) {
   result_df <- simulate_data_poisson(G, alpha, beta, gamma_sq, c1, c1c2_ratio, B, niter,
@@ -260,9 +261,9 @@ for (alpha in alpha_list) {
 ## vary beta
 
 alpha <- 0
-beta_list <- seq(1, 11, 2)
+beta_list <- seq(1, 5, 1)
 B <- 10000
-gamma_sq <- 1
+gamma_sq <- 2
 G <- 30
 R <- 79
 niter <- 100
