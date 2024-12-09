@@ -108,11 +108,9 @@ This report is a collaboration with Dr. Brett Romano Ely and Dr. Matthew Ely fro
 
 # Data Collection
 
-This project combines information from four datasets: `Project1.csv`, `aqi_values.csv`, `course_record.csv`, and `marathon_dates.csv`.
+This project combines information from four datasets, including information of participants' performance, air quality, and the corresponding information for each race. The primary dataset in this project consists of 11,564 observations with 14 variables, including information on participants’ characteristics and environmental condition characteristics collected from five major marathon races over a period of 15-20 years in the U.S.: the Boston Marathon, Chicago Marathon, New York City Marathon, Twin Cities Marathon (Minneapolis, MN), and Grandma’s Marathon (Duluth, MN). Our response variable is `CR_pct`, representing the percent off the current course record (%CR). Key covariates include race, sex, temperature (`Tdc`, `Twc`, `Tgc`, etc.), relative humidity (`rh`), solar radiation (`SRWm2`), dew point (`DP`), wind speed (`Wind`), and Wet Bulb Globe Temperature (`WBGT`). 
 
-The primary dataset in this project, `Project1.csv`, consists of 11,564 observations with 14 variables, including information on participants’ characteristics and environmental condition characteristics collected from five major marathon races over a period of 15-20 years in the U.S.: the Boston Marathon, Chicago Marathon, New York City Marathon, Twin Cities Marathon (Minneapolis, MN), and Grandma’s Marathon (Duluth, MN). Our response variable is `CR_pct`, representing the percent off the current course record (%CR). Key covariates include race, sex, temperature (`Tdc`, `Twc`, `Tgc`, etc.), relative humidity (`rh`), solar radiation (`SRWm2`), dew point (`DP`), wind speed (`Wind`), and Wet Bulb Globe Temperature (`WBGT`). 
-
-`aqi_values.csv` consists of 10,451 observations and 11 variables, containing detailed information on Air Quality Index (AQI) for each race day over years. `course_record.csv` has 194 rows and 4 columns, providing information on the best course record for each marathon race by gender. `marathon_dates.csv` includes information of specific date on which each races were held with 98 observations and 3 variables.
+The air quality data from the `RAQSAPI` package consists of 10,451 observations and 11 variables, containing detailed information on Air Quality Index (AQI) for each race day over years. The course record dataset has 194 rows and 4 columns, providing information on the best course record for each marathon race by gender. The date dataset includes information of specific date on which each races were held with 98 observations and 3 variables.
 
 # Preprocessing
 
