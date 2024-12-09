@@ -620,6 +620,29 @@ lasso_model_function_moderator <- function(data_list) {
 
 # Run the lasso model function
 lasso_coef_results_moderator <- lasso_model_function_moderator(completed_datasets)
+
+coef_imputation_df <- Reduce(function(x, y) merge(x, y, by = "Variable"), lasso_coef_results_moderator)
+names(coef_imputation_df) <- c("Variable", "Imputation1", "Imputation2", "Imputation3", "Imputation4", "Imputation5")
+coef_imputation_df <- coef_imputation_df %>%
+  filter(Imputation1 != 0 | Imputation2 != 0 | Imputation3 != 0 | Imputation4 != 0 | Imputation5 != 0)
+
+coef_imputation_df$SortCategory <- c(1, 4, 3, 3, 3, 4, 4, 2, 2, 2, 2, 4, 2, 4)
+
+coef_imputation_df <- coef_imputation_df[order(coef_imputation_df$SortCategory, coef_imputation_df$Variable), ] %>%
+  dplyr::select(-c("SortCategory"))
+
+names(coef_imputation_df) <- c("Variable", "Imputation 1", "Imputation 2", "Imputation 3", "Imputation 4", "Imputation 5") 
+
+coef_imputation_df %>%
+  kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "0.5cm") %>%
+  column_spec(2, width = "2.5cm") %>%
+  column_spec(3, width = "1.5cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1.5cm") %>%
+  column_spec(6, width = "1.5cm") %>%
+  column_spec(7, width = "1.5cm")
 ```
 
 ```{r}
