@@ -21,7 +21,7 @@ Through exploratory data analysis and statistical modeling, we concludes that ag
 
 Our linear model reinforces our earlier findings about age, showing that both age and its quadratic term have significant effects, indicating a nonlinear relationship where performance generally declines with age. Males, with a negative coefficient estimate, perform better than females. Among weather parameters, WBGT has the most substantial impact on marathon performance, while other weather variables show either marginal significance or no significance. Notably, the influence of WBGT, humidity, wind speed, and solar radiation on performance varies across age, as evidenced by significant interactions between age and these weather variables. The full report can be found [here](Project1/Report/Project-1-Codebook.pdf).
 
-![](Project1/image/coef_results.png)
+![](image/coef_results.png)
 
 ### Files
 - Folder `Report`:
