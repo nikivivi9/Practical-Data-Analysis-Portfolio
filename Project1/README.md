@@ -26,7 +26,7 @@ Our linear model reinforces our earlier findings about age, showing that both ag
 ### Files
 - Folder `Report`:
      - `Project 1 codebook.rmd`: The Rmarkdown file of this Exploratory Data Analysis report, containing codes and analysis text.
-     - `Project 1 codebook.pdf`: The pdf file of this Exploratory Data Analysis report, including the analysis text, code results, and appendix.
+     - `Project 1 codebook.pdf`: The pdf file of this Exploratory Data Analysis report, including the analysis text, code results, and appendix. 
  
 
 ### Dependencies
