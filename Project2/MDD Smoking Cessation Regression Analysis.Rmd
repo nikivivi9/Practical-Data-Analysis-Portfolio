@@ -47,6 +47,9 @@ library(e1071)
 library(corrplot)
 library(L0Learn)
 library(MASS)
+library(magick)
+library(grid)
+library(gridExtra)
 ```
 
 ```{r}
@@ -129,8 +132,9 @@ averaged_data_factor <- averaged_data_factor %>%
          edu = fct_relevel(edu, "Grade School", "Some high school", "High school graduate or GED",
                            "Some college/technical school", "College graduate"))
 
-averaged_data_factor$edu <- recode(averaged_data_factor$edu, "Grade School" = "Some high school & Grade School")
-averaged_data_factor$edu <- recode(averaged_data_factor$edu, "Some high school" = "Some high school & Grade School")
+averaged_data_factor$edu <- case_when(averaged_data_factor$edu == "Grade School" ~ "Some high school & Grade School", 
+                                      averaged_data_factor$edu == "Some high school" ~ "Some high school & Grade School",
+                                      TRUE ~ averaged_data_factor$edu)
 ```
 
 
@@ -563,6 +567,68 @@ for (i in 1:length(completed_datasets)) {
 }
 ```
 
+```{r}
+# Set working directory
+# Windows
+setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
+
+# Read in data
+data <- read.csv("project2.csv")
+
+# Factor categorical variables
+data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
+         "Black", "Hisp", "inc", "edu", "ftcd.5.mins", 
+         "otherdiag", "antidepmed", "mde_curr", 
+         "Only.Menthol")] <- lapply(data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
+                                             "Black", "Hisp", "inc", "edu", 
+                                             "ftcd.5.mins", "otherdiag", "antidepmed", 
+                                             "mde_curr", "Only.Menthol")], as.factor)
+
+# Multiple imputation with m = 5
+new_data <- data[, -1]
+imputed_data <- mice(new_data, m = 5, method = 'pmm', seed = 2550, printFlag = FALSE)
+
+# Extract the five imputed datasets into a list
+completed_datasets_nontrans <- list()
+for (i in 1:5) {
+  completed_datasets_nontrans[[i]] <- complete(imputed_data, i)
+}
+
+for (i in 1:length(completed_datasets_nontrans)) {
+  completed_datasets_nontrans[[i]] <- completed_datasets_nontrans[[i]] %>%
+    mutate(trt = as.factor(case_when(Var == 1 & BA == 1 ~ "BASC + varenicline",
+                                     Var == 0 & BA == 1 ~ "BASC + placebo",
+                                     Var == 1 & BA == 0 ~ "ST + varenicline",
+                                     Var == 0 & BA == 0 ~ "ST + placebo",
+                                     TRUE ~ NA_character_)),
+           race = as.factor(case_when(Black == 0 & Hisp == 0 & NHW == 0 ~ "Unknown",
+                                      Black == 1 & Hisp == 1 & NHW == 1 ~ "Mixed Race",
+                                      Black == 1 & Hisp == 1 ~ "Mixed Race",
+                                      Black == 1 & NHW == 1 ~ "Mixed Race",
+                                      NHW == 1 & Hisp == 1 ~ "Mixed Race",
+                                      Black == 1 ~ "Black",
+                                      Hisp == 1 ~ "Hispanic",
+                                      NHW == 1 ~ "Non-Hispanic White",
+                                      TRUE ~ "Other")),
+           inc = fct_recode(as.factor(inc), 
+                            "Less than $20,000" = "1", 
+                            "$20,000-35,000" = "2", 
+                            "$35,001-50,000" = "3", 
+                            "$50,001-75,000" = "4", 
+                            "More than $75,000" = "5"),
+           edu = fct_collapse(as.factor(edu),
+                             "Some high school & Grade School" = c("1", "2"),
+                             "High school graduate or GED" = "3",
+                             "Some college/technical school" = "4",
+                             "College graduate" = "5")) %>%
+    mutate(inc = fct_relevel(inc, "Less than $20,000", "$20,000-35,000", 
+                             "$35,001-50,000", "$50,001-75,000", "More than $75,000"),
+           edu = fct_relevel(edu, "Some high school & Grade School", 
+                             "High school graduate or GED", 
+                             "Some college/technical school", "College graduate")) %>%
+    mutate(trt = relevel(factor(trt), ref = "ST + placebo"))
+}
+```
 
 ```{r}
 lasso_model_function_moderator <- function(data_list) {
@@ -617,8 +683,10 @@ lasso_model_function_moderator <- function(data_list) {
   # Return list of coefficients for all imputed datasets
   return(lasso_coef)
 }
+```
 
-# Run the lasso model function
+```{r}
+# Run the lasso model function with transformed data
 lasso_coef_results_moderator <- lasso_model_function_moderator(completed_datasets)
 
 coef_imputation_df <- Reduce(function(x, y) merge(x, y, by = "Variable"), lasso_coef_results_moderator)
@@ -633,16 +701,16 @@ coef_imputation_df <- coef_imputation_df[order(coef_imputation_df$SortCategory, 
 
 names(coef_imputation_df) <- c("Variable", "Imputation 1", "Imputation 2", "Imputation 3", "Imputation 4", "Imputation 5") 
 
-coef_imputation_df %>%
-  kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate") %>%
-  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
-  column_spec(1, width = "0.5cm") %>%
-  column_spec(2, width = "2.5cm") %>%
-  column_spec(3, width = "1.5cm") %>%
-  column_spec(4, width = "1.5cm") %>%
-  column_spec(5, width = "1.5cm") %>%
-  column_spec(6, width = "1.5cm") %>%
-  column_spec(7, width = "1.5cm")
+# coef_imputation_df %>%
+#   kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate (With Transformation)") %>%
+#   kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+#   column_spec(1, width = "0.5cm") %>%
+#   column_spec(2, width = "2.5cm") %>%
+#   column_spec(3, width = "1.5cm") %>%
+#   column_spec(4, width = "1.5cm") %>%
+#   column_spec(5, width = "1.5cm") %>%
+#   column_spec(6, width = "1.5cm") %>%
+#   column_spec(7, width = "1.5cm")
 ```
 
 ```{r}
@@ -681,6 +749,73 @@ colnames(ordered_model_results)[3] <- "Exponential Estimate"
 # Display results
 ordered_model_results %>%
   kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+```
+
+```{r}
+# Run the lasso model function with data none transformation
+lasso_coef_results_moderator_nontrans <- lasso_model_function_moderator(completed_datasets_nontrans)
+
+coef_imputation_df_nontrans <- Reduce(function(x, y) merge(x, y, by = "Variable"), lasso_coef_results_moderator_nontrans)
+names(coef_imputation_df_nontrans) <- c("Variable", "Imputation1", "Imputation2", "Imputation3", "Imputation4", "Imputation5")
+coef_imputation_df_nontrans <- coef_imputation_df_nontrans %>%
+  filter(Imputation1 != 0 | Imputation2 != 0 | Imputation3 != 0 | Imputation4 != 0 | Imputation5 != 0)
+
+coef_imputation_df_nontrans$SortCategory <- c(1, 4, 3, 4, 4, 2, 2, 4, 4, 4, 2, 4)
+
+coef_imputation_df_nontrans <- coef_imputation_df_nontrans[order(coef_imputation_df_nontrans$SortCategory, coef_imputation_df_nontrans$Variable), ] %>%
+  dplyr::select(-c("SortCategory"))
+
+names(coef_imputation_df_nontrans) <- c("Variable", "Imputation 1", "Imputation 2", "Imputation 3", "Imputation 4", "Imputation 5") 
+
+# coef_imputation_df_nontrans %>%
+#   kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate (No Transformation)") %>%
+#   kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+#   column_spec(1, width = "0.5cm") %>%
+#   column_spec(2, width = "2.5cm") %>%
+#   column_spec(3, width = "1.5cm") %>%
+#   column_spec(4, width = "1.5cm") %>%
+#   column_spec(5, width = "1.5cm") %>%
+#   column_spec(6, width = "1.5cm") %>%
+#   column_spec(7, width = "1.5cm")
+```
+
+```{r}
+# Generate combined coefficient data frame
+imputed_coefs_list_moderator_nontrans <- list()
+for (i in seq_along(lasso_coef_results_moderator_nontrans)) {
+  coefs <- lasso_coef_results_moderator_nontrans[[i]]
+  colnames(coefs)[colnames(coefs) == "Estimates"] <- paste0("Estimates_", i)
+  imputed_coefs_list_moderator_nontrans[[i]] <- coefs[, c("Variable", paste0("Estimates_", i))]
+}
+
+# Combine and pool estimates
+wide_format_coefficients_moderator_nontrans <- Reduce(function(x, y) merge(x, y, by = "Variable", all = TRUE), imputed_coefs_list_moderator_nontrans)
+wide_format_coefficients_moderator_nontrans$Pooled_Estimate <- rowMeans(wide_format_coefficients_moderator_nontrans[ , grep("Estimates_", names(wide_format_coefficients_moderator_nontrans))], na.rm = TRUE)
+
+coef_table_moderator_nontrans <- wide_format_coefficients_moderator_nontrans %>%
+  filter(Pooled_Estimate != 0) %>%
+  dplyr::select(c("Variable", "Pooled_Estimate"))
+
+colnames(coef_table_moderator_nontrans)[2] <- "Estimate"
+coef_table_moderator_nontrans$exp_estimate <- exp(coef_table_moderator_nontrans$Estimate)
+```
+
+```{r}
+# Order main effects and interactions
+main_effects_nontrans <- coef_table_moderator_nontrans[!grepl(":", coef_table_moderator_nontrans$Variable), ]
+interaction_terms_nontrans <- coef_table_moderator_nontrans[grepl(":", coef_table_moderator_nontrans$Variable), ]
+age_interaction_nontrans <- coef_table_moderator_nontrans[coef_table_moderator_nontrans$Variable == "age_ps:Var1", ]
+
+# Combine for final ordered result
+ordered_model_results_nontrans <- rbind(main_effects_nontrans, interaction_terms_nontrans)[-4,]
+ordered_model_results_nontrans <- rbind(ordered_model_results_nontrans, age_interaction_nontrans)
+rownames(ordered_model_results_nontrans) <- NULL
+colnames(ordered_model_results_nontrans)[3] <- "Exponential Estimate"
+
+# Display results
+ordered_model_results_nontrans %>%
+  kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate (No Transformation)") %>%
   kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
 ```
 
@@ -799,7 +934,6 @@ text(0.3, 0.2, paste("AUC =", round(auc(auc_result_test), 2)), col = "blue", cex
 mtext("Figure 6: ROC Curves for Train and Test Data", outer = TRUE, cex = 1)
 ```
 
-
 ```{r, out.width = "70%", fig.pos = "H", fig.align = "center", fig.height = 4}
 long_data_trainset <- long_data_trainset %>%
   mutate(abst_num = as.numeric(as.character(long_data_train$abst)))
@@ -818,6 +952,22 @@ We also examine the model's performance using ROC and calibration plots shown in
 
 Moreover, observing `Figure 7`, the calibration plot for the training set shows that the model is well-calibrated with lower probability predictions, with points distributed around the diagonal line which indicates the alignment between the predictions and observed values. However, as probabilities increase, slight deviations appear. The test set calibration plot shows more pronounced deviations from the diagonal line. This suggests that while the model’s predictions are reasonably aligned with actual outcomes for the training data, calibration issues are more substantial in the test set, which needs further investigation. 
 
+```{r}
+bootstrap_summary <- read.csv("Bootstrap_Results/summary_results.csv")
+bootstrap_summary %>% 
+  kable(booktabs = TRUE, caption = "Bootstrap Lasso Model Coefficient Estimate ") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+```
+
+```{r}
+# Read in the images
+bootstrap_roc_image <- image_read("BootStrap_Results/roc_curve.png")
+bootstrap_calibration_image <- image_read("BootStrap_Results/calibration_plot.png")
+
+grid.arrange(rasterGrob(bootstrap_roc_image), rasterGrob(bootstrap_calibration_image),ncol = 2)
+grid.text("Bootstrap Lasso Validation", x = 0.5, y = 0.85, gp = gpar(fontsize = 12))
+
+```
 # Discussion
 
 Collaborating with the study of smoking cessation for people with MDD led by Dr. George Papandonatos, this study aims to further investigate potential moderators of behavioral treatment (BASC vs. ST) on the EOT abstinence for this group of people and dedicates to identify baseline characteristics as predictors of abstinence, controlling for behavioral and pharmacotherapy treatment. Lasso regression is chosen to perform variable selection that helps to focus on the most influential baseline characteristics and their interaction terms, balancing predictivity with interpretability. 

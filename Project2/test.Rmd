@@ -1,0 +1,371 @@
+
+```{r}
+# Set working directory
+# Windows
+setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
+
+# Read in data
+data <- read.csv("project2.csv")
+
+# Factor categorical variables
+data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
+         "Black", "Hisp", "inc", "edu", "ftcd.5.mins", 
+         "otherdiag", "antidepmed", "mde_curr", 
+         "Only.Menthol")] <- lapply(data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
+                                             "Black", "Hisp", "inc", "edu", 
+                                             "ftcd.5.mins", "otherdiag", "antidepmed", 
+                                             "mde_curr", "Only.Menthol")], as.factor)
+
+# Multiple imputation with m = 5
+new_data <- data[, -1]
+imputed_data <- mice(new_data, m = 5, method = 'pmm', seed = 2550, printFlag = FALSE)
+
+# Extract the five imputed datasets into a list
+completed_datasets_nontrans <- list()
+for (i in 1:5) {
+  completed_datasets_nontrans[[i]] <- complete(imputed_data, i)
+}
+
+for (i in 1:length(completed_datasets_nontrans)) {
+  completed_datasets_nontrans[[i]] <- completed_datasets_nontrans[[i]] %>%
+    mutate(trt = as.factor(case_when(Var == 1 & BA == 1 ~ "BASC + varenicline",
+                                     Var == 0 & BA == 1 ~ "BASC + placebo",
+                                     Var == 1 & BA == 0 ~ "ST + varenicline",
+                                     Var == 0 & BA == 0 ~ "ST + placebo",
+                                     TRUE ~ NA_character_)),
+           race = as.factor(case_when(Black == 0 & Hisp == 0 & NHW == 0 ~ "Unknown",
+                                      Black == 1 & Hisp == 1 & NHW == 1 ~ "Mixed Race",
+                                      Black == 1 & Hisp == 1 ~ "Mixed Race",
+                                      Black == 1 & NHW == 1 ~ "Mixed Race",
+                                      NHW == 1 & Hisp == 1 ~ "Mixed Race",
+                                      Black == 1 ~ "Black",
+                                      Hisp == 1 ~ "Hispanic",
+                                      NHW == 1 ~ "Non-Hispanic White",
+                                      TRUE ~ "Other")),
+           inc = fct_recode(as.factor(inc), 
+                            "Less than $20,000" = "1", 
+                            "$20,000-35,000" = "2", 
+                            "$35,001-50,000" = "3", 
+                            "$50,001-75,000" = "4", 
+                            "More than $75,000" = "5"),
+           edu = fct_collapse(as.factor(edu),
+                             "Some high school & Grade School" = c("1", "2"),
+                             "High school graduate or GED" = "3",
+                             "Some college/technical school" = "4",
+                             "College graduate" = "5")) %>%
+    mutate(inc = fct_relevel(inc, "Less than $20,000", "$20,000-35,000", 
+                             "$35,001-50,000", "$50,001-75,000", "More than $75,000"),
+           edu = fct_relevel(edu, "Some high school & Grade School", 
+                             "High school graduate or GED", 
+                             "Some college/technical school", "College graduate")) %>%
+    mutate(trt = relevel(factor(trt), ref = "ST + placebo"))
+}
+```
+
+```{r}
+lasso_model_function_moderator <- function(data_list) {
+  lasso_coef <- list()
+  
+  for (index in seq_along(data_list)) {
+    data <- data_list[[index]]
+    
+    # Split train and test sets
+    set.seed(2550)
+    train_index <- createDataPartition(data$trt, p = 0.7, list = FALSE)
+    train_data <- data[train_index, ]
+    test_data <- data[-train_index, ]
+    
+    # Create fold IDs for cross-validation
+    train_data$foldid <- NA
+    for (trt_level in unique(train_data$trt)) {
+      treatment_data <- train_data[train_data$trt == trt_level, ]
+      fold_ids <- sample(rep(1:10, length.out = nrow(treatment_data)))
+      train_data$foldid[train_data$trt == trt_level] <- fold_ids
+    }
+    
+    # Define model matrix
+    X <- model.matrix(abst ~ BA * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race) +
+                        Var * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race), data = train_data)[, -1]
+    y <- train_data$abst
+    
+    # Fit lasso with cross-validation using custom foldid
+    cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, nfolds = 10, 
+                          foldid = train_data$foldid, nlambda = 100)
+    best_lambda <- cv_model$lambda.min
+    
+    # Fit final lasso model using best lambda
+    lasso_model <- glmnet(X, y, family = "binomial", alpha = 1, lambda = best_lambda)
+    
+    # Extract coefficients and store in a data frame
+    coefficients <- as.data.frame(as.matrix(coef(lasso_model)))
+    coefficients$Variable <- rownames(coefficients)
+    rownames(coefficients) <- NULL
+    colnames(coefficients)[1] <- "Estimates"
+    
+    # Store coefficients in list
+    lasso_coef[[index]] <- coefficients
+  }
+  
+  # Return list of coefficients for all imputed datasets
+  return(lasso_coef)
+}
+```
+
+```{r}
+# Run the lasso model function
+lasso_coef_results_moderator_nontrans <- lasso_model_function_moderator(completed_datasets_nontrans)
+
+coef_imputation_df_nontrans <- Reduce(function(x, y) merge(x, y, by = "Variable"), lasso_coef_results_moderator_nontrans)
+names(coef_imputation_df_nontrans) <- c("Variable", "Imputation1", "Imputation2", "Imputation3", "Imputation4", "Imputation5")
+coef_imputation_df_nontrans <- coef_imputation_df_nontrans %>%
+  filter(Imputation1 != 0 | Imputation2 != 0 | Imputation3 != 0 | Imputation4 != 0 | Imputation5 != 0)
+
+coef_imputation_df_nontrans$SortCategory <- c(1, 4, 3, 4, 4, 2, 2, 4, 4, 4, 2, 4)
+
+coef_imputation_df_nontrans <- coef_imputation_df_nontrans[order(coef_imputation_df_nontrans$SortCategory, coef_imputation_df_nontrans$Variable), ] %>%
+  dplyr::select(-c("SortCategory"))
+
+names(coef_imputation_df_nontrans) <- c("Variable", "Imputation 1", "Imputation 2", "Imputation 3", "Imputation 4", "Imputation 5") 
+
+coef_imputation_df_nontrans %>%
+  kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "0.5cm") %>%
+  column_spec(2, width = "2.5cm") %>%
+  column_spec(3, width = "1.5cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1.5cm") %>%
+  column_spec(6, width = "1.5cm") %>%
+  column_spec(7, width = "1.5cm")
+```
+
+```{r}
+# Generate combined coefficient data frame
+imputed_coefs_list_moderator_nontrans <- list()
+for (i in seq_along(lasso_coef_results_moderator_nontrans)) {
+  coefs <- lasso_coef_results_moderator_nontrans[[i]]
+  colnames(coefs)[colnames(coefs) == "Estimates"] <- paste0("Estimates_", i)
+  imputed_coefs_list_moderator_nontrans[[i]] <- coefs[, c("Variable", paste0("Estimates_", i))]
+}
+
+# Combine and pool estimates
+wide_format_coefficients_moderator_nontrans <- Reduce(function(x, y) merge(x, y, by = "Variable", all = TRUE), imputed_coefs_list_moderator_nontrans)
+wide_format_coefficients_moderator_nontrans$Pooled_Estimate <- rowMeans(wide_format_coefficients_moderator_nontrans[ , grep("Estimates_", names(wide_format_coefficients_moderator_nontrans))], na.rm = TRUE)
+
+coef_table_moderator_nontrans <- wide_format_coefficients_moderator_nontrans %>%
+  filter(Pooled_Estimate != 0) %>%
+  dplyr::select(c("Variable", "Pooled_Estimate"))
+
+colnames(coef_table_moderator_nontrans)[2] <- "Estimate"
+coef_table_moderator_nontrans$exp_estimate <- exp(coef_table_moderator_nontrans$Estimate)
+```
+
+```{r}
+# Order main effects and interactions
+main_effects_nontrans <- coef_table_moderator_nontrans[!grepl(":", coef_table_moderator_nontrans$Variable), ]
+interaction_terms_nontrans <- coef_table_moderator_nontrans[grepl(":", coef_table_moderator_nontrans$Variable), ]
+age_interaction_nontrans <- coef_table_moderator_nontrans[coef_table_moderator_nontrans$Variable == "age_ps:Var1", ]
+
+# Combine for final ordered result
+ordered_model_results_nontrans <- rbind(main_effects_nontrans, interaction_terms_nontrans)[-5,]
+ordered_model_results_nontrans <- rbind(ordered_model_results_nontrans, age_interaction_nontrans)
+rownames(ordered_model_results_nontrans) <- NULL
+colnames(ordered_model_results_nontrans)[3] <- "Exponential Estimate"
+
+# Display results
+ordered_model_results_nontrans %>%
+  kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+```
+
+
+```{r}
+long_data_train_nontrans <- data.frame()
+long_data_test_nontrans <- data.frame()
+
+# get stratified training index based on treatment group
+set.seed(2550)
+train_index <- createDataPartition(completed_datasets_nontrans[[1]]$trt, p = 0.7, list = FALSE)
+
+# generate long format of train and test dataframe from the five imputed datasets
+for (i in 1:length(completed_datasets_nontrans)) {
+  imputed_dataset <- completed_datasets_nontrans[[i]]
+  train_set <- imputed_dataset[train_index, ]
+  test_set <- imputed_dataset[-train_index, ]
+  
+  long_data_train_nontrans <- rbind(long_data_train_nontrans, train_set)
+  long_data_test_nontrans <- rbind(long_data_test_nontrans, test_set)
+}
+```
+
+```{r}
+# create the design matrix with interaction terms
+long_data_matrix_train_nontrans <- model.matrix(abst ~ BA * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race)  +
+                             Var * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race),
+                                       data = long_data_train_nontrans)
+
+# convert the design matrix to a data frame
+long_data_trainset_nontrans <- as.data.frame(long_data_matrix_train_nontrans)
+
+# extract the intercept from pooled coefficients
+pooled_intercept_nontrans <- wide_format_coefficients_moderator_nontrans %>%
+  filter(Variable == "(Intercept)") %>%
+  pull(Pooled_Estimate)
+
+# extract only non-intercept pooled coefficients
+pooled_coefs_nontrans <- wide_format_coefficients_moderator_nontrans %>%
+  filter(Variable != "(Intercept)")
+
+# ensure the predictor variables in the data match those in pooled coefficients
+predictor_vars_nontrans <- pooled_coefs_nontrans$Variable
+long_data_trainset_nontrans <- long_data_trainset_nontrans[, predictor_vars_nontrans, drop = FALSE] 
+
+# calculate log-odds using matrix multiplication with pooled coefficients
+long_data_trainset_nontrans$log_odds <- pooled_intercept_nontrans + as.matrix(long_data_trainset_nontrans) %*% pooled_coefs_nontrans$Pooled_Estimate
+
+# convert log-odds to probabilities
+long_data_trainset_nontrans$predicted_prob <- 1 / (1 + exp(-long_data_trainset_nontrans$log_odds))
+```
+
+```{r}
+# create the design matrix with interaction terms
+long_data_matrix_test_nontrans <- model.matrix(abst ~ BA * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race) +
+                                      Var * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race),
+                                 data = long_data_test_nontrans)
+
+# convert the design matrix to a data frame
+long_data_testset_nontrans <- as.data.frame(long_data_matrix_test_nontrans)
+
+# ensure the predictor variables in the data match those in pooled coefficients
+long_data_testset_nontrans <- long_data_testset_nontrans[, predictor_vars_nontrans, drop = FALSE] 
+
+# calculate log-odds using matrix multiplication with pooled coefficients
+long_data_testset_nontrans$log_odds <- pooled_intercept_nontrans + as.matrix(long_data_testset_nontrans) %*% pooled_coefs_nontrans$Pooled_Estimate
+
+# convert log-odds to probabilities
+long_data_testset_nontrans$predicted_prob <- 1 / (1 + exp(-long_data_testset_nontrans$log_odds))
+```
+
+```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
+# do roc on train and test sets
+auc_result_nontrans <- roc(long_data_train_nontrans$abst, long_data_trainset_nontrans$predicted_prob)
+auc_result_test_nontrans <- roc(long_data_test_nontrans$abst, long_data_testset_nontrans$predicted_prob)
+
+# plot roc for both sets
+par(mfrow= c(1,2), oma = c(0, 0, 2, 0))
+plot(auc_result_nontrans, main = "Train Data", font.main = 1, cex.main = 0.8, cex.lab = 0.8)
+text(0.3, 0.2, paste("AUC =", round(auc(auc_result_nontrans), 2)), col = "blue", cex = 0.7)
+
+plot(auc_result_test_nontrans, main = "Test Data", font.main = 1, cex.main = 0.8, cex.lab = 0.8)
+text(0.3, 0.2, paste("AUC =", round(auc(auc_result_test_nontrans), 2)), col = "blue", cex = 0.7)
+
+mtext("Figure 6: ROC Curves for Train and Test Data", outer = TRUE, cex = 1)
+```
+
+
+
+
+```{r}
+relax_lasso_model_function_moderator <- function(data_list) {
+  lasso_coef <- list()
+  
+  for (index in seq_along(data_list)) {
+    data <- data_list[[index]]
+    
+    # Split train and test sets
+    set.seed(2550)
+    train_index <- createDataPartition(data$trt, p = 0.7, list = FALSE)
+    train_data <- data[train_index, ]
+    test_data <- data[-train_index, ]
+    
+    # Create fold IDs for cross-validation
+    train_data$foldid <- NA
+    for (trt_level in unique(train_data$trt)) {
+      treatment_data <- train_data[train_data$trt == trt_level, ]
+      fold_ids <- sample(rep(1:10, length.out = nrow(treatment_data)))
+      train_data$foldid[train_data$trt == trt_level] <- fold_ids
+    }
+    
+    # Define model matrix
+    X <- model.matrix(abst ~ BA * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race) +
+                        Var * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race), data = train_data)[, -1]
+    y <- train_data$abst
+    
+    # Fit lasso with cross-validation using custom foldid
+    lambda_grid <- exp(seq(-6, 0, length.out = 100))
+    cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, relaxed = TRUE, lambda = lambda_grid, maxit = 100000)
+    best_lambda <- cv_model$lambda.min
+    
+    # Fit final lasso model using best lambda
+    lasso_model <- glmnet(X, y, family = "binomial", alpha = 1, lambda = best_lambda, relax = TRUE, maxit = 100000)
+    
+    # Extract coefficients and store in a data frame
+    coefficients <- as.data.frame(as.matrix(coef(lasso_model)))
+    coefficients$Variable <- rownames(coefficients)
+    rownames(coefficients) <- NULL
+    colnames(coefficients)[1] <- "Estimates"
+    
+    # Store coefficients in list
+    lasso_coef[[index]] <- coefficients
+  }
+  
+  # Return list of coefficients for all imputed datasets
+  return(lasso_coef)
+}
+```
+
+```{r}
+# Run the lasso model function
+relax_lasso_coef_results_moderator_nontrans <- relax_lasso_model_function_moderator(completed_datasets_nontrans)
+
+coef_imputation_df_nontrans_relax <- Reduce(function(x, y) merge(x, y, by = "Variable"), relax_lasso_coef_results_moderator_nontrans)
+names(coef_imputation_df_nontrans_relax) <- c("Variable", "Imputation1", "Imputation2", "Imputation3", "Imputation4", "Imputation5")
+coef_imputation_df_nontrans_relax <- coef_imputation_df_nontrans_relax %>%
+  filter(Imputation1 != 0 | Imputation2 != 0 | Imputation3 != 0 | Imputation4 != 0 | Imputation5 != 0)
+
+coef_imputation_df_nontrans_relax$SortCategory <- c(1, 4, 3, 4, 4, 2, 2, 4, 4, 4, 2, 4)
+
+coef_imputation_df_nontrans_relax <- coef_imputation_df_nontrans_relax[order(coef_imputation_df_nontrans_relax$SortCategory,
+                                                                             coef_imputation_df_nontrans_relax$Variable), ] %>%
+  dplyr::select(-c("SortCategory"))
+
+names(coef_imputation_df_nontrans_relax) <- c("Variable", "Imputation 1", "Imputation 2", "Imputation 3", "Imputation 4", "Imputation 5") 
+
+coef_imputation_df_nontrans_relax %>%
+  kable(booktabs = TRUE, caption = "Relax Lasso Model Coefficient Estimate") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "0.5cm") %>%
+  column_spec(2, width = "2.5cm") %>%
+  column_spec(3, width = "1.5cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1.5cm") %>%
+  column_spec(6, width = "1.5cm") %>%
+  column_spec(7, width = "1.5cm")
+
+coef_imputation_df_nontrans_relax_pooled <- coef_imputation_df_nontrans_relax %>%
+  mutate(pool_estimate = rowMeans(dplyr::select(., `Imputation 1`, `Imputation 2`, `Imputation 3`, `Imputation 4`, `Imputation 5`)))
+```
