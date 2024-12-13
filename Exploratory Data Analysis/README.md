@@ -9,7 +9,7 @@ The performance outcome is measured as the percentage deviation from the course 
 ### Methods
 This report is a collaboration with Dr. Brett Romano Ely and Dr. Matthew Ely from the Department of Health Sciences at Providence College, which explores how environmental conditions, age, and sex would influence runner’s performance in this long-distance race. Their prior research found that warmer temperature leads to decline in performance in marathon races, and this decline in endurance performance varies significantly between females and males. Moreover, older adults face more thermoregulatory challenges during exercise, which further exacerbate performance declines under warmer temperature. This study aims to build on previous findings, providing deeper insight on the following aims through exploratory data analysis and statistical modeling:
 
-- Aim 1: Examine effects of increasing age on marathon performance in men and women.l
+- Aim 1: Examine effects of increasing age on marathon performance in men and women.
 - Aim 2: Explore the impact of environmental conditions on marathon performance, and whether the impact differs across age and gender.
 - Aim 3: Identify the weather parameters (WBGT, Flag conditions, temperature, etc) that have the largest impact on marathon performance.
 
@@ -17,7 +17,7 @@ This report is a collaboration with Dr. Brett Romano Ely and Dr. Matthew Ely fro
 
 Through exploratory data analysis and statistical modeling, we concludes that age plays a significant role in runner's performance. Highest, Upper-mid, and younger, aged runners perform worse, especially for senior in the highest age group. Moreover, male runners show more sensitivity to age change compared to female runners, with a steeper decline in performance as age increases.
 
-Our linear model reinforces our earlier findings about age, showing that both age and its quadratic term have significant effects, indicating a nonlinear relationship where performance generally declines with age. Males, with a negative coefficient estimate, perform better than females. Among weather parameters, WBGT has the most substantial impact on marathon performance, while other weather variables show either marginal significance or no significance. Notably, the influence of WBGT, humidity, wind speed, and solar radiation on performance varies across age, as evidenced by significant interactions between age and these weather variables. The full report can be found [here](Exploratory%20Data%20Analysis/Report/Project-1-Codebook.pdf).
+Our linear model reinforces our earlier findings about age, showing that both age and its quadratic term have significant effects, indicating a nonlinear relationship where performance generally declines with age. Males, with a negative coefficient estimate, perform better than females. Among weather parameters, WBGT has the most substantial impact on marathon performance, while other weather variables show either marginal significance or no significance. Notably, the influence of WBGT, humidity, wind speed, and solar radiation on performance varies across age, as evidenced by significant interactions between age and these weather variables. The full report can be found [here](../Exploratory%20Data%20Analysis/Report/Project-1-Codebook.pdf).
 
 ![](image/coef_results.png)
 
