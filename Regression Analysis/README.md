@@ -2,7 +2,7 @@
 
 ### Project Description
 
-This study investigates the impact of baseline characteristics on smoking cessation outcomes in adults with Major Depressive Disorder (MDD), focusing on the effects of both behavioral and pharmacological treatments. Conducted in collaboration with Dr. George Papandonatos, this study employs a 2 × 2 factorial, randomized, placebo-controlled design to assess Behavioral Activation for Smoking Cessation (BASC) versus standard treatment (ST) and varenicline versus placebo. The goal is to identify baseline predictors of abstinence and explore how certain characteristics may moderate the effects of treatment, contributing to more effective smoking cessation interventions for individuals with MDD.
+This study investigates the impact of baseline characteristics on smoking cessation outcomes in adults with Major Depressive Disorder (MDD), focusing on the effects of both behavioral and pharmacological treatments. Conducted in collaboration with Dr. George Papandonatos, this study employs a 2 × 2 factorial, randomized, placebo-controlled design to assess Behavioral Activation for Smoking Cessation (BASC) versus standard treatment (ST) and varenicline versus placebo. The goal is to identify baseline predictors of abstinence and explore how certain characteristics may moderate the effects of treatment, contributing to more effective smoking cessation interventions for individuals with MDD. The full report can be found [here](Regression Analysis/MDD-Smoking-Cessation-Regression-Analysis.pdf).
 
 ### Methods
 
