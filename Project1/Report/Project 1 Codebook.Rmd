@@ -514,6 +514,7 @@ linear_model <- lm(CR_pct ~ sex * (WBGT + rh + Wind + SRWm2 + aqi) + age * (WBGT
 selection_model <- step(linear_model, direction = "backward", trace = 0)
 coef_result <- summary(selection_model)$coefficients
 
+write.csv(coef_result, file = "model_result.csv", col.names = FALSE)
 # convert the summary table to kable and print the result
 coef_result %>%
   kable(booktabs = TRUE, caption = "Coefficient Estimation of Best Model",

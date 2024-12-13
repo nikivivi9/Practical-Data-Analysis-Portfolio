@@ -74,7 +74,7 @@ for (i in 1:length(completed_datasets)) {
 
 # Bootstrap
 ```{r}
-lasso_model_function_bootstrap <- function(data_list, n_bootstrap = 100) {
+lasso_model_function_bootstrap <- function(data_list, n_bootstrap) {
   lasso_coef <- list()
   
   for (index in seq_along(data_list)) {
@@ -98,7 +98,7 @@ lasso_model_function_bootstrap <- function(data_list, n_bootstrap = 100) {
       train_data$foldid <- NA
       for (trt_level in unique(train_data$trt)) {
         treatment_data <- train_data[train_data$trt == trt_level, ]
-        fold_ids <- sample(rep(1:10, length.out = nrow(treatment_data)))
+        fold_ids <- sample(rep(1:5, length.out = nrow(treatment_data)))
         train_data$foldid[train_data$trt == trt_level] <- fold_ids
       }
       
@@ -114,7 +114,7 @@ lasso_model_function_bootstrap <- function(data_list, n_bootstrap = 100) {
       y <- train_data$abst
       
       # Fit lasso with cross-validation using custom foldid
-      cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, nfolds = 10, 
+      cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, nfolds = 5, 
                             foldid = train_data$foldid, nlambda = 100)
       best_lambda <- cv_model$lambda.min
       
@@ -147,7 +147,7 @@ lasso_model_function_bootstrap <- function(data_list, n_bootstrap = 100) {
 ```
 
 ```{r}
-summarize_bootstrap <- function(data, ci_level = 0.95, threshold = 0.4) {
+summarize_bootstrap <- function(data, ci_level = 0.95, threshold) {
   # Summarize all variables including intercept
   summarized_vars <- data %>%
     group_by(Variable) %>%
@@ -155,7 +155,7 @@ summarize_bootstrap <- function(data, ci_level = 0.95, threshold = 0.4) {
       Mean_Estimate = mean(Estimates),
       Lower_CI = quantile(Estimates, probs = (1 - ci_level) / 2),
       Upper_CI = quantile(Estimates, probs = 1 - (1 - ci_level) / 2),
-      Proportion_Selected = mean(Estimates != 0)  # Fraction of non-zero estimates
+      Proportion_Selected = mean(Estimates != 0)
     ) %>%
     filter(Proportion_Selected > threshold)
   
@@ -174,7 +174,7 @@ summarize_bootstrap <- function(data, ci_level = 0.95, threshold = 0.4) {
 ```
 
 ```{r}
-long_data <- function(data_list, n_bootstrap = 100) {
+long_data <- function(data_list, n_bootstrap) {
   trainset <- data.frame(NULL)
   testset <- data.frame(NULL)
   for (index in seq_along(data_list)) {
@@ -191,6 +191,7 @@ long_data <- function(data_list, n_bootstrap = 100) {
       train_data <- bootstrap_data[train_index, ]
       test_data <- bootstrap_data[-train_index, ]
       
+      # combine training and testing set to long format
       trainset <- rbind(trainset, train_data)
       testset <- rbind(testset, test_data)
     }
@@ -201,16 +202,17 @@ long_data <- function(data_list, n_bootstrap = 100) {
 
 ```{r}
 # Run the bootstrap function
-boot_results <- lasso_model_function_bootstrap(completed_datasets)
+boot_results <- lasso_model_function_bootstrap(completed_datasets, n_bootstrap = 200)
 combined_results <- bind_rows(boot_results, .id = "Dataset")
-summary_table <- summarize_bootstrap(combined_results, ci_level = 0.95, threshold = 0.4)
-long_df <- long_data(completed_datasets, n_bootstrap = 100)
+summary_table <- summarize_bootstrap(combined_results, ci_level = 0.95, threshold = 0.333)
+long_df <- long_data(completed_datasets, n_bootstrap = 200)
 trainset <- long_df$train
 testset <- long_df$test
 coef <- setNames(as.numeric(summary_table$Mean_Estimate), summary_table$Variable)
-summary_table$sort <- c(1, 3, 3, 2, 4, 4, 4, 4, 4, 2, 2, 4, 4, 2)
+summary_table$sort <- c(1, 3, 3, 3, 2, 4, 4, 4, 4, 4, 2, 2, 4, 4, 2)
 summary_table_clean <- summary_table[order(summary_table$sort, summary_table$Variable), ] %>%
-  dplyr::select(-c("sort", "Proportion_Selected")) 
+  dplyr::select(-c("sort")) 
+names(summary_table_clean) <- c("Variable", "Pooled Estimate", "Lower CI", "Upper CI", "Siginificant Proportion")
 
 write.csv(summary_table_clean, "Bootstrap_Results/summary_results.csv", row.names = FALSE)
 ```
@@ -264,14 +266,13 @@ testset$predict <- 1 / (1 + exp(-linear_pred_test))
 roc_obj_test <- roc(testset$abst, testset$predict)
 auc_test <- auc(roc_obj_test)
 
-png("Bootstrap_Results/roc_curve.png", width = 800, height = 600, res = 150)
-plot(roc_obj_train, main = "ROC Curve (Bootstrap)", col = "blue", lwd = 2)
-plot(roc_obj_test, add = TRUE, col = "red", lwd = 2)
-text(1.05, 0.7, paste0("Train AUC: ", round(auc_train, 3)), col = "blue", cex = 0.7)
-text(0.6, 0.6, paste0("Test AUC: ", round(auc_test, 3)), col = "red", cex = 0.7)
-legend("bottomright", legend = c("Train", "Test"), col = c("blue", "red"), lwd = 2)
-
-
+png("Bootstrap_Results/roc_curve.png", width = 800, height = 500, res = 150)
+plot(roc_obj_train, main = "Figure 8: ROC Curve (Bootstrap)", col = "blue", lwd = 1.5,
+     cex.main = 0.7, cex.lab = 0.6, cex.axis = 0.5, font.main = 1)
+plot(roc_obj_test, add = TRUE, col = "red", lwd = 1.5)
+text(1.1, 0.7, paste0("Train AUC: ", round(auc_train, 3)), col = "blue", cex = 0.8)
+text(0.55, 0.6, paste0("Test AUC: ", round(auc_test, 3)), col = "red", cex = 0.8)
+legend("bottomright", legend = c("Train", "Test"), col = c("blue", "red"), lwd = 1, cex = 0.5)
 ```
 
 ```{r}
@@ -279,7 +280,14 @@ trainset <- trainset %>%
   mutate(abst_num = as.numeric(as.character(trainset$abst)))
 testset <- testset %>%
   mutate(abst_num = as.numeric(as.character(testset$abst)))
-calibration_data <- trainset %>%
+calibration_data_train <- trainset %>%
+  mutate(prob_bin = cut(predict, breaks = seq(0, 1, length.out = 16), include.lowest = TRUE)) %>%
+  group_by(prob_bin) %>%
+  summarise(Mean_Predicted = mean(predict, na.rm = TRUE),
+            Observed_Proportion = mean(abst_num, na.rm = TRUE)) %>%
+  na.omit()
+
+calibration_data_test <- testset %>%
   mutate(prob_bin = cut(predict, breaks = seq(0, 1, length.out = 16), include.lowest = TRUE)) %>%
   group_by(prob_bin) %>%
   summarise(Mean_Predicted = mean(predict, na.rm = TRUE),
@@ -287,20 +295,39 @@ calibration_data <- trainset %>%
   na.omit()
 
 # Calibration plot with ideal, LM smooth, and Loess smooth
-calibration_bootstrap <- ggplot(calibration_data, aes(x = Mean_Predicted, y = Observed_Proportion)) +
-  geom_point(size = 2, alpha = 0.6) +  # Points for observed vs predicted
-  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed", size = 1) +  # Ideal line
-  geom_smooth(method = "lm", se = FALSE, aes(color = "LM Smooth")) +  # Linear smooth
-  geom_smooth(method = "loess", se = TRUE, aes(color = "Loess Smooth")) +  # Loess smooth with CI
-  labs(title = "Calibration Plot (Bootstrap)", x = "Expected Proportion",
+calibration_bootstrap <- ggplot(calibration_data_train, aes(x = Mean_Predicted, y = Observed_Proportion)) +
+  geom_point(size = 2, alpha = 0.6) +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed", size = 1) + 
+  geom_smooth(method = "lm", se = FALSE, aes(color = "LM Smooth")) +
+  geom_smooth(method = "loess", se = TRUE, aes(color = "Loess Smooth")) +
+  labs(title = "Train Set", x = "Expected Proportion",
        y = "Observed Proportion", color = "Legend") +
   scale_color_manual(name = "Legend", 
                      values = c("LM Smooth" = "blue", "Loess Smooth" = "black")) +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+  theme(plot.title = element_text(hjust = 0.5, size = 10),
         legend.position = "right") +
   coord_cartesian(xlim = c(0, 0.7), ylim = c(0, 1))
 ggsave("Bootstrap_Results/calibration_plot.png", plot = calibration_bootstrap, width = 8, height = 6, dpi = 300)
+
+calibration_bootstrap_test <- ggplot(calibration_data_test, aes(x = Mean_Predicted, y = Observed_Proportion)) +
+  geom_point(size = 2, alpha = 0.6) +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed", size = 1) + 
+  geom_smooth(method = "lm", se = FALSE, aes(color = "LM Smooth")) +
+  geom_smooth(method = "loess", se = TRUE, aes(color = "Loess Smooth")) +
+  labs(title = "Test Set", x = "Expected Proportion",
+       y = "Observed Proportion", color = "Legend") +
+  scale_color_manual(name = "Legend", 
+                     values = c("LM Smooth" = "blue", "Loess Smooth" = "black")) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 10),
+        legend.position = "right") +
+  coord_cartesian(xlim = c(0, 0.7), ylim = c(0, 1))
+
+calibration_plot <- ggarrange(calibration_bootstrap, calibration_bootstrap_test, common.legend = TRUE, legend = "bottom")
+calibration_plot <- annotate_figure(calibration_plot,
+                                    top = text_grob("Figure 9: Calibration Plot (Bootstrap)", size = 12))
+ggsave("Bootstrap_Results/calibration_plot.png", plot = calibration_plot, width = 8, height = 5, dpi = 300)
 ```
 
 

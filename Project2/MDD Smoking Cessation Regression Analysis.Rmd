@@ -11,11 +11,11 @@ csl: apa-numeric-superscript.csl
 
 **Background:** People with Major Depressive Disorder (MDD) are more likely to engage in tobacco use. However, most smoking cessation clinical trials had excluded this group from the enrollment, limiting available information to support smoking cessation for this group. This study, collaborating with Dr. George Papandonatos, aims to evaluates behavioral and pharmacological treatment for smoking cessation in adults with MDD to identify baseline characteristics that may moderate the behavioral treatment or predict smoking cessation outcome.
 
-**Methods:** In a 2 × 2 factorial, randomized, placebo-controlled trial, 300 adult smokers with current or past MDD were randomly assigned to either Behavioral Activation for Smoking Cessation (BASC) or standard treatment (ST), combined with either varenicline or placebo. Participants' demographic characteristics, smoking behavior, mental health measurement, and the abstinence outcome at the week 27 follow-up were collected. Lasso regression was employed to identify significant baseline characteristics and potential interaction effects with treatment, controlling for both behavioral and pharmacotherapy assignments.
+**Methods:** In a 2 × 2 factorial, randomized, placebo-controlled trial, 300 adult smokers with current or past MDD were randomly assigned to either Behavioral Activation for Smoking Cessation (BASC) or standard treatment (ST), combined with either varenicline or placebo. Participants' demographic characteristics, smoking behavior, mental health measurement, and the abstinence outcome at the week 27 follow-up were collected. Lasso regression was employed to identify significant baseline characteristics and potential interaction effects with treatment, controlling for both behavioral and pharmacotherapy assignments. In addition, bootstrapping is applied to provide a more robust and stable analysis.
 
-**Results:** Findings suggest that as predictors, controlling for treatment groups and other factors, having higher nicotine metabolism ratio and identifying as Non-Hispanic White were associated with higher likelihood of abstinence, while higher nicotine dependence score, higher pleasurable events scale score, and current MDD experience were associated with lower odds of abstinence. Moreover, income, menthol cigarette users indicators, and MDD status serve as moderators of the behavioral treatment effect on the end-of-treatment (EOT) abstinence. 
+**Results:** Findings suggest that as predictors, controlling for treatment groups and other factors, having higher nicotine metabolism ratio and identifying as Non-Hispanic White were associated with higher likelihood of abstinence, while higher nicotine dependence score and current MDD experience were associated with lower odds of abstinence. Moreover, income, menthol cigarette users indicators, and nicotine dependece score serve as moderators of the behavioral treatment effect on the end-of-treatment (EOT) abstinence. 
 
-**Conclusion:** This study provides insights into how smoking cessation treatment outcomes among adults with MDD interact with baseline characteristics, identifying demographic factors, nicotine dependence, and MDD status as key predictors and moderators. However, variation in treatment adherence and several underrepresented groups could have influenced the estimate of treatment effect. Further research should explore strategies to improve engagement and broaden data collection to achieve better representation of these groups, enhancing the accuracy and generalizability of the findings.
+**Conclusion:** This study provides insights into how smoking cessation treatment outcomes among adults with MDD interact with baseline characteristics, identifying demographic factors, nicotine dependence, and MDD status as key predictors and moderators. However, variation in treatment adherence and several underrepresented groups could have influenced the estimate of treatment effect. Further research should explore strategies to improve engagement and broaden data collection to achieve better representation of these groups, enhancing the accuracy and generalizability of the findings. Further researches focusing on relaxed lasso or L0 + L2 penalty with more bootstrap iterations are also recommended.
 
 # Introduction
 
@@ -67,7 +67,7 @@ data <- read.csv("project2.csv")
 
 # Methods
 
-Our sample population consists of 300 adult smokers with or previously with MDD. Patients were randomly assigned to either behavioral activation for smoking cessation (BASC) or standard behavioral treatment (ST) and either varenicline or placebo groups. That is, participants were assigned to four distinct intervention groups, including `ST + placebo`, `ST + varenicline`, `BASC + placebo`, and `BASC + varenicline.` Randomization was stratified by clinical site, sex, and level of depressive symptoms to ensure balanced representation across these factors. 
+Our sample population consists of 300 adult smokers with or previously with MDD, without psychotic feaures, and are interested in quitting smoking. Initial eligibility screening was completed by telephone. Final eligibility screening, informed consent, treatment randomization and the baseline assessment was completed at the intake session (week 0). Patients were randomly assigned to either behavioral activation for smoking cessation (BASC) or standard behavioral treatment (ST) and either varenicline or placebo groups. That is, participants were assigned to four distinct intervention groups, including `ST + placebo`, `ST + varenicline`, `BASC + placebo`, and `BASC + varenicline.` Randomization was stratified by clinical site, sex, and level of depressive symptoms to ensure balanced representation across these factors. 
 
 
 Follow-up data was collected at week 27 to assess smoking cessation outcomes, along with relevant baseline characteristics. Key variables include smoking abstinence status, demographic characteristics (sex, age, income, and education), smoking behaviors (number of cigarettes per day, time to first cigarette after getting up, and nicotine dependence score), and psychiatric measures (MDD status, anhedonia score, other diagnoses, and antidepressant usage). 
@@ -75,8 +75,6 @@ Follow-up data was collected at week 27 to assess smoking cessation outcomes, al
 ## Data Preprocessing
 
 To prepare dataset for analysis, we firstly converted all categorical variables into factors. For socioeconomic factors, income and education, we recoded levels to improve readability and interpretability. In addition, we combined race and ethnicity indicators into a single race variable with categories including Black, Hispanic, Non-Hispanic White, Mixed Race, and Unknown.
-
-The dataset contains varying levels of missingness across several variables as presented in `Table 1`. Nicotine Metabolism Ratio (`NMR`) has the highest missing rate, with 7% of observations missing. The FTCD score at baseline (`ftcd_score`) has the lowest missing rate, 0.33%, with only one patient missing this information. Given our limited sample size, we prefer to retain as many observations as possible for our analysis. Therefore, to address the missingness, we applied a multiple imputation approach using the `mice()` function from the `mice` package in R, generating five imputed datasets to provide plausible values for all missing entries before proceeding to the primary analysis.
 
 ```{r}
 # factor categorical variables
@@ -153,6 +151,8 @@ missingness_df %>%
   kable(booktabs = TRUE, caption = "Summary of Missing Data Patterns Across Variables ") %>%
   kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
 ```
+
+The dataset contains varying levels of missingness across several variables as presented in `Table 1`. Nicotine Metabolism Ratio (`NMR`) has the highest missing rate, with 7% of observations missing. The FTCD score at baseline (`ftcd_score`) has the lowest missing rate, 0.33%, with only one patient missing this information. Given our limited sample size, we prefer to retain as many observations as possible for our analysis. Therefore, to address the missingness, we applied a multiple imputation approach using the `mice()` function from the `mice` package in R, generating five imputed datasets to provide plausible values for all missing entries before proceeding to the primary analysis.
 
 ## Data Exploration and Transformation
 
@@ -274,9 +274,6 @@ We also examine the distribution of continuous variables by treatment groups and
 
 Seeing `Figure 3`, the abstinence rate varies with age within the same treatment group, suggesting age as a predictor of treatment effect on EOT abstinence. Moreover, in the two placebo groups, younger participants in the `BASC + placebo` group show higher abstinence rate while this group of individuals exhibits lower abstinence rate in the `ST + placebo` group. Within the varenicline groups, middle-aged participants in ST + varenicline demonstrate significantly higher abstinence rates than middle-aged participants in BASC + varenicline.
 
-The FTCD score also appears to influence abstinence outcomes, with abstinence rates changing as FTCD scores vary. Moreover, participants with higher FTCD score in the `ST + placebo` group show significantly higher likelihood to continue smoking compared to those in the `BASC + placebo` group. Moreover, participants with FTCD score around 5 in the `ST + varenicline` group show higher abstinence rate compared to those in the `BASC + varenicline` group. These findings suggest potential interactions between age and behavioral treatment, as well as FTCD score-treatment and treatment. Age and FTCD score might serve as predictors and moderators of the treatment effect on the EOT abstinence.
-
-
 ```{r, out.width = "100%", fig.pos = "H", fig.align = "center", fig.height = 4}
 ftcd_score_stackplot <- ggplot(averaged_data_factor, aes(x = ftcd_score, fill = abst)) +
   geom_density(alpha = 0.5) +
@@ -372,6 +369,8 @@ combined_plot_NMRbdi <- combined_plot_NMRbdi & theme(plot.margin = margin(10, 10
 combined_plot_NMRbdi
 ```
 
+The FTCD score also appears to influence abstinence outcomes, with abstinence rates changing as FTCD scores vary. Moreover, participants with higher FTCD score in the `ST + placebo` group show significantly higher likelihood to continue smoking compared to those in the `BASC + placebo` group. Moreover, participants with FTCD score around 5 in the `ST + varenicline` group show higher abstinence rate compared to those in the `BASC + varenicline` group. These findings suggest potential interactions between age and behavioral treatment, as well as FTCD score-treatment and treatment. Age and FTCD score might serve as predictors and moderators of the treatment effect on the EOT abstinence.
+
 Seeing `Figure 4`, the distribution of NMR is right skewed towards participants with higher values across all treatment groups. In the placebo groups, participants with lower NMR are more likely to quit smoking at the week 27 follow-up while this gap is less pronounced in the varenicline groups. Within the `BASC + placebo` group, there is a huge gap in abstinence rate between participants with NMRs ranging from 0.3 to 0.5. Moreover, comparing the varenicline groups, participants with NMRs between 0.3 and 0.7 show higher abstinence rate in the `ST + varenicline` group but lower abstinence rate in the `BASC + varenicline` group. 
 
 For the BDI score (measure of depression), which reflects depressive symptom severity, distinct patterns also emerge. In the placebo groups, participants in the ST group with lower BDI scores (indicating less severe depressive symptoms) are more likely to stop smoking, while those with moderate BDI scores show lower abstinence rates. However, in the BASC group, participants show a more uniform distribution regardless of their depressive severity. The same pattern was observed when we compared the two varenicline groups, suggesting a complex interacting relationship between BDI score and the combination of behavioral and pharmacological treatments. These findings suggest that both NMR and BDI scores may interact with behavioral treatment types, influencing smoking cessation outcomes and potentially serving as moderators of treatment effects.
@@ -389,56 +388,15 @@ corrplot(cor_matrix, method = "color", type = "lower",
 title("Figure 5: Correlation Plot among Environmental Condition Characteristics", 
       cex.main = 0.9, line = 3) 
 ```
-
-To address skewness in several variables, we applied specific transformations based on the distributional characteristics of each variable, with transformations performed after the imputation step. Among the continuous variables, pleasurable events scale of substitute reinforcers (`hedonsum_n_pq1`), pleasurable events scale of complementary reinforcers (`hedonsum_y_pq1`), measure of anhedonia (`shaps_score_pq1`), and NMR exhibit right-skewed distributions. `Table 2` summarizes the skewness value of these variables before and after transformation.
-
-For the two pleasurable event scale variables, `hedonsum_n_pq1` and `hedonsum_y_pq1`, we applied a square root transformation to reduce high positive skewness values (1.34 and 1.39, respectively). This transformation brought their skewness close to zero (-0.06 and 0.06, respectively), resulting in more symmetric distributions. 
-
-Additionally, given that `shaps_score_pq1` had nearly 50% zero entries and a high positive skewness (1.71), we explored several transformations, including log, square root, and inverse hyperbolic sine (`asinh()`). The inverse hyperbolic sine transformation produced the lowest skewness (0.52), making it the most suitable choice for this variable. 
-
-Finally, we applied a log transformation on NMR which presents the highest skewness value before transformation (1.92). The log transformation successfully reduced the skewness to a nearly symmetric value. 
  
-```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
-# Take transformation
-averaged_data_factor_transformed <- averaged_data_factor
-averaged_data_factor_transformed$shaps_score_pq1 <- asinh(averaged_data_factor$shaps_score_pq1)
-averaged_data_factor_transformed$hedonsum_n_pq1 <- sqrt(averaged_data_factor$hedonsum_n_pq1)
-averaged_data_factor_transformed$hedonsum_y_pq1 <- sqrt(averaged_data_factor$hedonsum_y_pq1)
-averaged_data_factor_transformed$NMR <- log(averaged_data_factor$NMR)
 
-skewness_df <- data.frame(Variable = c("hedonsum_n_pq1", "hedonsum_y_pq1", "shaps_score_pq1", "NMR"),
-                          transformation = c("Square Root Transformation",
-                                             "Square Root Transformation",
-                                             "Inverse Hyperbolic Sine Transformation",
-                                             "Log Transformation"),
-                          skewness_before = c(skewness(averaged_data_factor$hedonsum_n_pq1),
-                                              skewness(averaged_data_factor$hedonsum_y_pq1),
-                                              skewness(averaged_data_factor$shaps_score_pq1, na.rm = TRUE),
-                                              skewness(averaged_data_factor$NMR, na.rm = TRUE)),
-                          skewness_after = c(skewness(averaged_data_factor_transformed$hedonsum_n_pq1),
-                                             skewness(averaged_data_factor_transformed$hedonsum_y_pq1),
-                                             skewness(averaged_data_factor_transformed$shaps_score_pq1, na.rm = TRUE),
-                                             skewness(averaged_data_factor_transformed$NMR, na.rm = TRUE)))
-
-colnames(skewness_df) <- c("Variable", "Transformation", 
-                           "Skewness before Transformation", "Skewness after Transformation" )
-
-skewness_df %>%
-  kable(booktabs = TRUE, caption = "Variable Transformation on Skewness") %>%
-  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
-  column_spec(1, width = "2cm") %>% 
-  column_spec(2, width = "4cm") %>%
-  column_spec(3, width = "3.5cm") %>%
-  column_spec(4, width = "3.5cm")
-```
-
-To analyze the impact of behavioral treatment on end-of-treatment abstinence and examine the moderating role of baseline characteristics, we selected Lasso regression as our primary model. Lasso was chosen for its ability to perform both variable selection and regularization, making it particularly suited for our study, which involves numerous baseline predictors and interaction terms. By applying an L1 penalty, Lasso shrinks less relevant coefficients to zero, effectively selecting a subset of the most influential predictors and interactions. 
+To analyze the impact of behavioral treatment on end-of-treatment abstinence and examine the moderating role of baseline characteristics, we selected Lasso regression as our primary model. Since our data has limited observations compared to number of covariates, Lasso was chosen for its ability to perform both variable selection and regularization, making it particularly suited for our study, which involves numerous baseline predictors and interaction terms. By applying an L1 penalty, Lasso shrinks less relevant coefficients to zero, effectively selecting a subset of the most influential predictors and interactions. 
  
 # Results
 
 Before conducting the primary analysis, we performed exploratory data analysis (EDA) to examine baseline characteristics, assess data distributions, and identify potential relationships within the dataset.
 
-`Table 3` presents an overall summary of statistics of patients' baseline characteristics by their behavioral and pharmacological treatment assignment. Since our study is a $2 \times 2$, factorial, randomized, placebo-controlled trial, patients are randomly assigned to either behavioral activation for smoking cessation group (BASC) or standard behavioral treatment group (ST) and either varenicline or placebo blister pack. Patients can be categorized into four treatment arm groups: BASC + placebo, BASC + varenicline, ST + placebo, and ST + varenicline. From `Table 3`, the two placebo groups both have 68 observations while the two varenicline groups have 83 and 81 observations, respectively. 
+`Table 2` presents an overall summary of statistics of patients' baseline characteristics by their behavioral and pharmacological treatment assignment. Since our study is a $2 \times 2$, factorial, randomized, placebo-controlled trial, patients are randomly assigned to either behavioral activation for smoking cessation group (BASC) or standard behavioral treatment group (ST) and either varenicline or placebo blister pack. Patients can be categorized into four treatment arm groups: BASC + placebo, BASC + varenicline, ST + placebo, and ST + varenicline. From `Table 2`, the two placebo groups both have 68 observations while the two varenicline groups have 83 and 81 observations, respectively. 
 
 Most variables are evenly distributed across the four treatment arms, which reflects successful randomization in this factorial trial. However, a few key factors, such as socioeconomic indicators (income and education) and specific mental health variables (MDD status, DSM-5 diagnoses), exhibit slight variations that may influence outcomes. Notably, treatment arms with varenicline show higher abstinence rates than placebo groups, suggesting the potential efficacy of this pharmacotherapy in combination with behavioral interventions. While many baseline characteristics are evenly distributed across groups, some may still function as moderators, potentially interacting with treatment assignment to affect abstinence success. In addition, only one observation falls into the Grade School level in the education variable. To ensure the appropriate representation of categories, we combined the grade school level with the next level, some high school, during the regression analysis. This adjustment ensures sufficient sample sizes across categories when we split the data. 
 
@@ -489,11 +447,52 @@ summary_table %>%
   row_spec(0, bold = TRUE, font_size = 7)
 ```
 
-As mentioned earlier, we performed multiple imputation using the `mice()` function to generate five different imputed data to address missingness. We then applied transformations listed in `Table 2` to the corresponding skewed variables in each imputed dataset. Each imputed dataset was then split into a 70% training set and a 30% test set, stratified by treatment group using the `createDataPartition()` function in the `caret` package. 
+During the data exploration, we observed that some continuous variables were highly skewed. Since applying transformations can reduce interpretability, we decided to perform Lasso regression on both the non-transformed and transformed datasets to evaluate whether transformation is necessary in this context.
 
-Lasso regression was conducted on each training set using `cv.glmnet()` with a design matrix that included all baseline characteristics and their interactions with the behavioral and pharmacological treatment, respectively. To ensure consistent treatment group distribution across each cross-validation fold in lasso regression, we created custom fold assignments by treatment level and specified these assignments through the `foldid` argument in `cv.glmnet()`. 
+For transformed data, we applied specific transformations based on the distributional characteristics of each variable, with transformations performed after the imputation step. Among the continuous variables, pleasurable events scale of substitute reinforcers (`hedonsum_n_pq1`), pleasurable events scale of complementary reinforcers (`hedonsum_y_pq1`), measure of anhedonia (`shaps_score_pq1`), and NMR exhibit right-skewed distributions. `Table 3` summarizes the skewness value of these variables before and after transformation.
 
-During cross-validation, we identified the optimal regularization parameter, `lambda.min`, which minimized the cross-validated error, and extracted the coefficient estimates for each lasso model at this optimal lambda value. Finally, we averaged the coefficient estimates from all five Lasso models to obtain the final pooled estimates, presented in `Table 4`.
+For the two pleasurable event scale variables, `hedonsum_n_pq1` and `hedonsum_y_pq1`, we applied a square root transformation to reduce high positive skewness values (1.34 and 1.39, respectively). This transformation brought their skewness close to zero (-0.06 and 0.06, respectively), resulting in more symmetric distributions. Additionally, given that `shaps_score_pq1` had nearly 50% zero entries and a high positive skewness (1.71), we explored several transformations, including log, square root, and inverse hyperbolic sine (`asinh()`). The inverse hyperbolic sine transformation produced the lowest skewness (0.52), making it the most suitable choice for this variable. Finally, we applied a log transformation on NMR which presents the highest skewness value before transformation (1.92). The log transformation successfully reduced the skewness to a nearly symmetric value. 
+
+```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
+# Take transformation
+averaged_data_factor_transformed <- averaged_data_factor
+averaged_data_factor_transformed$shaps_score_pq1 <- asinh(averaged_data_factor$shaps_score_pq1)
+averaged_data_factor_transformed$hedonsum_n_pq1 <- sqrt(averaged_data_factor$hedonsum_n_pq1)
+averaged_data_factor_transformed$hedonsum_y_pq1 <- sqrt(averaged_data_factor$hedonsum_y_pq1)
+averaged_data_factor_transformed$NMR <- log(averaged_data_factor$NMR)
+
+skewness_df <- data.frame(Variable = c("hedonsum_n_pq1", "hedonsum_y_pq1", "shaps_score_pq1", "NMR"),
+                          transformation = c("Square Root Transformation",
+                                             "Square Root Transformation",
+                                             "Inverse Hyperbolic Sine Transformation",
+                                             "Log Transformation"),
+                          skewness_before = c(skewness(averaged_data_factor$hedonsum_n_pq1),
+                                              skewness(averaged_data_factor$hedonsum_y_pq1),
+                                              skewness(averaged_data_factor$shaps_score_pq1, na.rm = TRUE),
+                                              skewness(averaged_data_factor$NMR, na.rm = TRUE)),
+                          skewness_after = c(skewness(averaged_data_factor_transformed$hedonsum_n_pq1),
+                                             skewness(averaged_data_factor_transformed$hedonsum_y_pq1),
+                                             skewness(averaged_data_factor_transformed$shaps_score_pq1, na.rm = TRUE),
+                                             skewness(averaged_data_factor_transformed$NMR, na.rm = TRUE)))
+
+colnames(skewness_df) <- c("Variable", "Transformation", 
+                           "Skewness before Transformation", "Skewness after Transformation" )
+
+skewness_df %>%
+  kable(booktabs = TRUE, caption = "Variable Transformation on Skewness") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "2cm") %>% 
+  column_spec(2, width = "4cm") %>%
+  column_spec(3, width = "3.5cm") %>%
+  column_spec(4, width = "3.5cm")
+```
+
+
+As mentioned earlier, we performed multiple imputation using the `mice()` function to generate five different imputed data to address missingness. We then applied transformations listed in `Table 2` to the corresponding skewed variables in each imputed dataset. 
+
+With transformed and non-transformed data list, each imputed dataset was then split into a 70% training set and a 30% test set, stratified by treatment group using the `createDataPartition()` function in the `caret` package. Lasso regression was conducted on each training set using `cv.glmnet()` with a design matrix that included all baseline characteristics and their interactions with the behavioral and pharmacological treatment, respectively. To ensure consistent treatment group distribution across each cross-validation fold in lasso regression, we created custom fold assignments by treatment level and specified these assignments through the `foldid` argument in `cv.glmnet()`. 
+
+During cross-validation, we identified the optimal regularization parameter, `lambda.min`, which minimized the cross-validated error, and extracted the coefficient estimates for each lasso model at this optimal lambda value. Finally, we averaged the coefficient estimates from all five Lasso models to obtain the final pooled estimates, presented in `Table 4` and `Table 5`.
 
 ```{r}
 # Set working directory
@@ -568,26 +567,6 @@ for (i in 1:length(completed_datasets)) {
 ```
 
 ```{r}
-# Set working directory
-# Windows
-setwd("C:/Users/yingx/OneDrive/Desktop/Fall 2024/PHP 2550/Data/")
-
-# Read in data
-data <- read.csv("project2.csv")
-
-# Factor categorical variables
-data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
-         "Black", "Hisp", "inc", "edu", "ftcd.5.mins", 
-         "otherdiag", "antidepmed", "mde_curr", 
-         "Only.Menthol")] <- lapply(data[, c("abst", "Var", "BA", "sex_ps", "NHW", 
-                                             "Black", "Hisp", "inc", "edu", 
-                                             "ftcd.5.mins", "otherdiag", "antidepmed", 
-                                             "mde_curr", "Only.Menthol")], as.factor)
-
-# Multiple imputation with m = 5
-new_data <- data[, -1]
-imputed_data <- mice(new_data, m = 5, method = 'pmm', seed = 2550, printFlag = FALSE)
-
 # Extract the five imputed datasets into a list
 completed_datasets_nontrans <- list()
 for (i in 1:5) {
@@ -647,7 +626,7 @@ lasso_model_function_moderator <- function(data_list) {
     train_data$foldid <- NA
     for (trt_level in unique(train_data$trt)) {
       treatment_data <- train_data[train_data$trt == trt_level, ]
-      fold_ids <- sample(rep(1:10, length.out = nrow(treatment_data)))
+      fold_ids <- sample(rep(1:5, length.out = nrow(treatment_data)))
       train_data$foldid[train_data$trt == trt_level] <- fold_ids
     }
     
@@ -663,7 +642,7 @@ lasso_model_function_moderator <- function(data_list) {
     y <- train_data$abst
     
     # Fit lasso with cross-validation using custom foldid
-    cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, nfolds = 10, 
+    cv_model <- cv.glmnet(X, y, family = "binomial", alpha = 1, nfolds = 5, 
                           foldid = train_data$foldid, nlambda = 100)
     best_lambda <- cv_model$lambda.min
     
@@ -694,7 +673,7 @@ names(coef_imputation_df) <- c("Variable", "Imputation1", "Imputation2", "Imputa
 coef_imputation_df <- coef_imputation_df %>%
   filter(Imputation1 != 0 | Imputation2 != 0 | Imputation3 != 0 | Imputation4 != 0 | Imputation5 != 0)
 
-coef_imputation_df$SortCategory <- c(1, 4, 3, 3, 3, 4, 4, 2, 2, 2, 2, 4, 2, 4)
+coef_imputation_df$SortCategory <- c(1, 4, 3, 3, 3, 4, 4, 2, 2, 2, 2, 4, 4, 2, 2, 4)
 
 coef_imputation_df <- coef_imputation_df[order(coef_imputation_df$SortCategory, coef_imputation_df$Variable), ] %>%
   dplyr::select(-c("SortCategory"))
@@ -741,15 +720,27 @@ interaction_terms <- coef_table_moderator[grepl(":", coef_table_moderator$Variab
 age_interaction <- coef_table_moderator[coef_table_moderator$Variable == "age_ps:Var1", ]
 
 # Combine for final ordered result
-ordered_model_results <- rbind(main_effects, interaction_terms)[-7,]
+ordered_model_results <- rbind(main_effects, interaction_terms)[-8,]
 ordered_model_results <- rbind(ordered_model_results, age_interaction)
 rownames(ordered_model_results) <- NULL
 colnames(ordered_model_results)[3] <- "Exponential Estimate"
 
+trans_coef <- left_join(coef_imputation_df, ordered_model_results, by = "Variable") %>%
+  dplyr::select(-8)
+
+names(trans_coef)[7] <- "Pooled Estimate"
+
 # Display results
-ordered_model_results %>%
-  kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate") %>%
-  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+trans_coef %>%
+  kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate (With Transformation)") %>%
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "4cm") %>%
+  column_spec(2, width = "1.5cm") %>%
+  column_spec(3, width = "1.5cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1.5cm") %>%
+  column_spec(6, width = "1.5cm") %>%
+  column_spec(7, width = "2cm")
 ```
 
 ```{r}
@@ -761,7 +752,8 @@ names(coef_imputation_df_nontrans) <- c("Variable", "Imputation1", "Imputation2"
 coef_imputation_df_nontrans <- coef_imputation_df_nontrans %>%
   filter(Imputation1 != 0 | Imputation2 != 0 | Imputation3 != 0 | Imputation4 != 0 | Imputation5 != 0)
 
-coef_imputation_df_nontrans$SortCategory <- c(1, 4, 3, 4, 4, 2, 2, 4, 4, 4, 2, 4)
+# coef_imputation_df_nontrans$SortCategory <- c(1, 4, 3, 4, 4, 2, 2, 4, 4, 4, 2, 4)
+coef_imputation_df_nontrans$SortCategory <- c(1, 4, 3, 4, 4, 2, 2, 4, 4, 2)
 
 coef_imputation_df_nontrans <- coef_imputation_df_nontrans[order(coef_imputation_df_nontrans$SortCategory, coef_imputation_df_nontrans$Variable), ] %>%
   dplyr::select(-c("SortCategory"))
@@ -808,36 +800,30 @@ interaction_terms_nontrans <- coef_table_moderator_nontrans[grepl(":", coef_tabl
 age_interaction_nontrans <- coef_table_moderator_nontrans[coef_table_moderator_nontrans$Variable == "age_ps:Var1", ]
 
 # Combine for final ordered result
-ordered_model_results_nontrans <- rbind(main_effects_nontrans, interaction_terms_nontrans)[-4,]
+ordered_model_results_nontrans <- rbind(main_effects_nontrans, interaction_terms_nontrans)[-5,]
 ordered_model_results_nontrans <- rbind(ordered_model_results_nontrans, age_interaction_nontrans)
 rownames(ordered_model_results_nontrans) <- NULL
 colnames(ordered_model_results_nontrans)[3] <- "Exponential Estimate"
 
+nontrans_coef <- left_join(coef_imputation_df_nontrans, ordered_model_results_nontrans, by = "Variable") %>%
+  dplyr::select(-8)
+
+names(nontrans_coef)[7] <- "Pooled Estimate"
+
 # Display results
-ordered_model_results_nontrans %>%
+nontrans_coef %>%
   kable(booktabs = TRUE, caption = "Lasso Model Coefficient Estimate (No Transformation)") %>%
-  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
+  kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down")) %>%
+  column_spec(1, width = "4cm") %>%
+  column_spec(2, width = "1.5cm") %>%
+  column_spec(3, width = "1.5cm") %>%
+  column_spec(4, width = "1.5cm") %>%
+  column_spec(5, width = "1.5cm") %>%
+  column_spec(6, width = "1.5cm") %>%
+  column_spec(7, width = "2cm")
 ```
 
-Observing the main effects in `Table 4`, we find that the FTCD score has a coefficient of -0.1217, suggesting that each one-unit increase in FTCD score decreases the odds of abstinence for people with MDD by approximately 11.46%, indicating that higher nicotine dependence may reduce abstinence likelihood, holding other factors constant. Similarly, the square root transformed pleasurable events scale of substitute reinforcers, `hedonsum_n_pq1`, and the MDD status indicator (`mde_curr1`) display negative coefficient estimates, suggesting the negative association between higher pleasurable events scale and current MDD experience and the odds of smoking abstinence.
-
-Moreover, the log-transformed Nicotine Metabolism Ratio (`NMR`) and the race variable (Non-Hispanic White group) both present a positive association with the smoking cessation outcome among people with MDD, controlling for other covariates. Notably, the interaction term between BASC treatment and race exhibits significant estimate as well, suggesting that Non-Hispanic White participants using BASC would experience a small additional increase in abstinence odds. Thus, the NMR and race variable not only functions as predictors but also as moderators.
-
-This is same for the indicator of exclusive mentholated cigarette user, `Only.Menthol`, and the income
-characteristics, `inc`. The interaction term between BASC treatment and Only.Menthol displays an estimate
-of -0.3842, suggesting that for MDD people receiving the BASC treatment, those who are mentholated
-cigarette user would have a 31.81% of decrease in the odds of abstinence compared to those who are not
-mentholated cigarette user. Additionally, the interaction term between BASC treatment and income ($35,001-
-50,000) has an estimate of 0.0124. This suggests that for MDD people receiving the BASC treatment, those
-who have income ranging from \$35,000 to \$50,000 would experience approximately a 1.25% increase in the
-odds of abstinence compared to individuals with different income levels.
-
-The model also has several interaction term with the indicator of varenicline treatment (`Var`) which identify
-potential moderators for the pharmacological treatment on the EOT abstinence for people with MDD.
-Specifically, cigarette reward value (`crv_total_pq1`), education level (level: high school graduate or GED),
-race (level: mixed race), sex, and age serve as potential moderators. These interactions suggest that the
-effectiveness of varenicline may vary depending on these baseline characteristics, highlighting the nuanced
-impact of pharmacological treatment across different demographic and behavioral profiles.
+Examining the results of Lasso regression on both the transformed and non-transformed datasets, we decided to retain the transformation. Comparing `Table 4` and `Table 5`, we found key skewed variables such as `NMR` and `hedonsum_n_pq1` became significant with transformation while are dropped with non-transformed data, indicating that the transformation better captured the relationships between these variables and the outcome. In addition, we generate the ROC curve for training and test set with both datasets shown in `Figure 6`. The AUC exhibits a slight increase of 0.02 for the training set after applying transformation and it increases by 0.01 for the test set with transformation. The calibration plots shown in `Figure 7` do not provide clear or conclusive insights into whether transformations significantly improve the model. While transformations can reduce interpretability, the improved model performance and increased significance of skewed variables justify their use in this context. By applying transformations, we aim to achieve a more robust and accurate model without compromising key insights.
 
 ```{r}
 long_data_train <- data.frame()
@@ -918,39 +904,174 @@ long_data_testset$log_odds <- pooled_intercept + as.matrix(long_data_testset) %*
 long_data_testset$predicted_prob <- 1 / (1 + exp(-long_data_testset$log_odds))
 ```
 
+```{r}
+long_data_train_nontrans <- data.frame()
+long_data_test_nontrans <- data.frame()
+
+# get stratified training index based on treatment group
+set.seed(2550)
+train_index <- createDataPartition(completed_datasets[[1]]$trt, p = 0.7, list = FALSE)
+
+# generate long format of train and test dataframe from the five imputed datasets
+for (i in 1:length(completed_datasets_nontrans)) {
+  imputed_dataset <- completed_datasets_nontrans[[i]]
+  train_set <- imputed_dataset[train_index, ]
+  test_set <- imputed_dataset[-train_index, ]
+  
+  long_data_train_nontrans <- rbind(long_data_train_nontrans, train_set)
+  long_data_test_nontrans <- rbind(long_data_test_nontrans, test_set)
+}
+```
+
+```{r}
+# create the design matrix with interaction terms
+long_data_matrix_train_nontrans <- model.matrix(abst ~ BA * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race)  +
+                             Var * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race),
+                                       data = long_data_train_nontrans)
+
+# convert the design matrix to a data frame
+long_data_trainset_nontrans <- as.data.frame(long_data_matrix_train_nontrans)
+
+# extract the intercept from pooled coefficients
+pooled_intercept_nontrans <- wide_format_coefficients_moderator_nontrans %>%
+  filter(Variable == "(Intercept)") %>%
+  pull(Pooled_Estimate)
+
+# extract only non-intercept pooled coefficients
+pooled_coefs_nontrans <- wide_format_coefficients_moderator_nontrans %>%
+  filter(Variable != "(Intercept)")
+
+# ensure the predictor variables in the data match those in pooled coefficients
+predictor_vars_nontrans <- pooled_coefs_nontrans$Variable
+long_data_trainset_nontrans <- long_data_trainset_nontrans[, predictor_vars_nontrans, drop = FALSE] 
+
+# calculate log-odds using matrix multiplication with pooled coefficients
+long_data_trainset_nontrans$log_odds <- pooled_intercept_nontrans + as.matrix(long_data_trainset_nontrans) %*% pooled_coefs_nontrans$Pooled_Estimate
+
+# convert log-odds to probabilities
+long_data_trainset_nontrans$predicted_prob <- 1 / (1 + exp(-long_data_trainset_nontrans$log_odds))
+```
+
+```{r}
+# create the design matrix with interaction terms
+long_data_matrix_test_nontrans <- model.matrix(abst ~ BA * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race) +
+                                      Var * (age_ps + sex_ps + inc + edu + ftcd_score + ftcd.5.mins +
+                                    bdi_score_w00 + cpd_ps + crv_total_pq1 + hedonsum_n_pq1 + hedonsum_y_pq1 +
+                                    shaps_score_pq1 + otherdiag + antidepmed + mde_curr + NMR + Only.Menthol +
+                                    readiness + race),
+                                 data = long_data_test_nontrans)
+
+# convert the design matrix to a data frame
+long_data_testset_nontrans <- as.data.frame(long_data_matrix_test_nontrans)
+
+# ensure the predictor variables in the data match those in pooled coefficients
+long_data_testset_nontrans <- long_data_testset_nontrans[, predictor_vars_nontrans, drop = FALSE] 
+
+# calculate log-odds using matrix multiplication with pooled coefficients
+long_data_testset_nontrans$log_odds <- pooled_intercept_nontrans + as.matrix(long_data_testset_nontrans) %*% pooled_coefs_nontrans$Pooled_Estimate
+
+# convert log-odds to probabilities
+long_data_testset_nontrans$predicted_prob <- 1 / (1 + exp(-long_data_testset_nontrans$log_odds))
+```
+
 ```{r, out.width = "80%", fig.pos = "H", fig.align = "center", fig.height = 4}
 # do roc on train and test sets
+auc_result_nontrans <- roc(long_data_train_nontrans$abst, long_data_trainset_nontrans$predicted_prob)
+auc_result_test_nontrans <- roc(long_data_test_nontrans$abst, long_data_testset_nontrans$predicted_prob)
+
 auc_result <- roc(long_data_train$abst, long_data_trainset$predicted_prob)
 auc_result_test <- roc(long_data_test$abst, long_data_testset$predicted_prob)
 
 # plot roc for both sets
 par(mfrow= c(1,2), oma = c(0, 0, 2, 0))
-plot(auc_result, main = "Train Data", font.main = 1, cex.main = 0.8, cex.lab = 0.8)
-text(0.3, 0.2, paste("AUC =", round(auc(auc_result), 2)), col = "blue", cex = 0.7)
+plot(auc_result_nontrans, main = "No Transformation", col = "blue", lwd = 1.5, 
+     cex.main = 0.7, cex.lab = 0.6, cex.axis = 0.5)
+plot(auc_result_test_nontrans, add = TRUE, col = "red", lwd = 1.5)
+text(0.82, 0.8, paste("AUC =", round(auc(auc_result_nontrans), 2)), col = "blue", cex = 0.5)
+text(0.5, 0.65, paste("AUC =", round(auc(auc_result_test_nontrans), 2)), col = "red", cex = 0.5)
+legend("bottomright", legend = c("Train", "Test"), col = c("blue", "red"), lwd = 1, cex = 0.5)
 
-plot(auc_result_test, main = "Test Data", font.main = 1, cex.main = 0.8, cex.lab = 0.8)
-text(0.3, 0.2, paste("AUC =", round(auc(auc_result_test), 2)), col = "blue", cex = 0.7)
-
-mtext("Figure 6: ROC Curves for Train and Test Data", outer = TRUE, cex = 1)
+plot(auc_result, main = "With Transformation", col = "blue", lwd = 1.5,
+     cex.main = 0.7, cex.lab = 0.6, cex.axis = 0.5)
+plot(auc_result_test, add = TRUE, col = "red", lwd = 1.5)
+text(0.82, 0.8, paste("AUC =", round(auc(auc_result), 2)), col = "blue", cex = 0.5)
+text(0.5, 0.65, paste("AUC =", round(auc(auc_result_test), 2)), col = "red", cex = 0.5)
+legend("bottomright", legend = c("Train", "Test"), col = c("blue", "red"), lwd = 1, cex = 0.5)
+mtext("Figure 6: ROC Curves Comparison", outer = TRUE, cex = 0.8)
 ```
 
-```{r, out.width = "70%", fig.pos = "H", fig.align = "center", fig.height = 4}
+```{r, out.width = "70%", fig.pos = "H", fig.align = "center", fig.height = 5}
 long_data_trainset <- long_data_trainset %>%
   mutate(abst_num = as.numeric(as.character(long_data_train$abst)))
 long_data_testset <- long_data_testset %>%
   mutate(abst_num = as.numeric(as.character(long_data_test$abst)))
 
-cal_plot_train <- calibration_plot(data = long_data_trainset, obs = "abst_num", pred = "predicted_prob", title = "Train Data", y_lim = c(0, 1), x_lim=c(0, 1))
-cal_plot_test <- calibration_plot(data = long_data_testset, obs = "abst_num", pred = "predicted_prob", title = "Test Data", y_lim = c(0, 1), x_lim=c(0, 1))
+cal_plot_train <- calibration_plot(data = long_data_trainset, obs = "abst_num", 
+                                   pred = "predicted_prob", title = "Train Data (With Transformation)", 
+                                   y_lim = c(0, 1), x_lim=c(0, 1)) 
+cal_plot_train <- cal_plot_train$calibration_plot
+cal_plot_train <- cal_plot_train +
+  theme(plot.title = element_text(size = 8),
+        axis.title.x = element_text(size = 6), axis.title.y = element_text(size = 6),
+        axis.text.x = element_text(size = 4), axis.text.y = element_text(size = 4))
 
-grid.arrange(cal_plot_train$calibration_plot, 
-             cal_plot_test$calibration_plot, ncol = 2,
+cal_plot_test <- calibration_plot(data = long_data_testset, obs = "abst_num", 
+                                  pred = "predicted_prob", title = "Test Data (With Transformation)", 
+                                  y_lim = c(0, 1), x_lim=c(0, 1))
+cal_plot_test <- cal_plot_test$calibration_plot
+cal_plot_test <- cal_plot_test +
+  theme(plot.title = element_text(size = 8),
+        axis.title.x = element_text(size = 6), axis.title.y = element_text(size = 6),
+        axis.text.x = element_text(size = 4), axis.text.y = element_text(size = 4))
+
+
+long_data_trainset_nontrans <- long_data_trainset_nontrans %>%
+  mutate(abst_num = as.numeric(as.character(long_data_train_nontrans$abst)))
+long_data_testset_nontrans <- long_data_testset_nontrans %>%
+  mutate(abst_num = as.numeric(as.character(long_data_test_nontrans$abst)))
+
+cal_plot_train_nontrans <- calibration_plot(data = long_data_trainset_nontrans, obs = "abst_num", 
+                                            pred = "predicted_prob", title = "Train Data (No Transformation)", 
+                                            y_lim = c(0, 1), x_lim=c(0, 1))
+cal_plot_train_nontrans <- cal_plot_train_nontrans$calibration_plot
+cal_plot_train_nontrans <- cal_plot_train_nontrans +
+  theme(plot.title = element_text(size = 8),
+        axis.title.x = element_text(size = 6), axis.title.y = element_text(size = 6),
+        axis.text.x = element_text(size = 4), axis.text.y = element_text(size = 4))
+
+cal_plot_test_nontrans <- calibration_plot(data = long_data_testset_nontrans, obs = "abst_num", 
+                                           pred = "predicted_prob", title = "Test Data (No Transformation)", 
+                                           y_lim = c(0, 1), x_lim=c(0, 1))
+
+cal_plot_test_nontrans <- cal_plot_test_nontrans$calibration_plot
+cal_plot_test_nontrans <- cal_plot_test_nontrans +
+  theme(plot.title = element_text(size = 8),
+        axis.title.x = element_text(size = 6), axis.title.y = element_text(size = 6),
+        axis.text.x = element_text(size = 4), axis.text.y = element_text(size = 4))
+
+grid.arrange(cal_plot_train_nontrans, cal_plot_test_nontrans,
+             cal_plot_train, cal_plot_test, ncol = 2,
              top = text_grob("Figure 7: Calibration Plot Comparison"))
 ```
 
-We also examine the model's performance using ROC and calibration plots shown in `Figure 6` and `Figure 7`. The prediction values for the train and test sets are calculated using the long format of train and test sets from the five imputed datasets, respectively. Observing `Figure 6`, the ROC curves indicate that our model effectively distinguishes between positive and negative classes. The train set has an AUC of 0.81 while the test test has an AUC of 0.75. Although there is a slight drop in AUC on the test set, the model still shows great discriminative power on unseen data. 
+In addition to the primary analysis, we employed bootstrap resampling to evaluate the stability and reliability of the model coefficients and predictions (code can be found in `Bootstrap.Rmd`). We performed a bootstrap procedure with 500 iterations on the imputed datasets. In each iteration, we generated a bootstrap sample from the dataset and split it into training and testing subsets. The Lasso regression model was fitted to the training data using 5-fold cross-validation to identify the optimal regularization parameter ($\lambda$), ensuring robust variable selection. Coefficients from the final Lasso model were extracted for each bootstrap iteration and stored for further analysis. This method allowed us to quantify the variability of coefficient estimates and identify consistently important predictors across the bootstrap samples. To summarize the results, we calculated the mean coefficient estimates, 95% confidence intervals, and the proportion of times each variable was selected as significant across iterations with a csv file saved within the `Boostrap_Results` folder named as `summary_results.csv`. Variables selected more than one-third of the time were identified as significant. These significant variables, along with their pooled estimates, confidence intervals, and selection proportions, are presented in `Table 6`.
 
-Moreover, observing `Figure 7`, the calibration plot for the training set shows that the model is well-calibrated with lower probability predictions, with points distributed around the diagonal line which indicates the alignment between the predictions and observed values. However, as probabilities increase, slight deviations appear. The test set calibration plot shows more pronounced deviations from the diagonal line. This suggests that while the model’s predictions are reasonably aligned with actual outcomes for the training data, calibration issues are more substantial in the test set, which needs further investigation. 
+Observing the model coefficient without bootstrap shown in `Table 4`, we find that among the main effect variables, `ftcd_score`, `hedonsum_n_pq1`, and `readiness` present significant negative coefficient estimates as a predictor of smoking abstinence. This indicates that, holding other factors, higher nicotine dependence levels, higher values of the square root-transformed pleasurable events scale of substitute reinforcers, and greater baseline readiness to quit smoking are associated with reduced odds of smoking cessation at week 27. However, with `hedonsum_n_pq1` and `readiness` only exhibit significant in one imputed dataset, the effect of these two factors on abstinence might be relatively minor. Similarly, the variable `mde_curr`, indicating current Major Depressive Disorder (MDD), also has a significant negative coefficient estimate, suggesting that individuals with MDD are less likely to achieve abstinence, all else being equal.
+
+In contrast, again as predictors, `NMR` and the race variable (Non-Hispanic White) have significant positive coefficient estimates. These findings suggest that higher log-transformed NMR values and identifying as Non-Hispanic White are positively associated with higher odds of smoking cessation, holding other factors constant. 
+
+The interaction terms between behavioral treatment and the income variable (\$35,001–50,000), the binary indicator of exclusive mentholated cigarette use, and the race variable (Non-Hispanic White) are significant in our results, identifying as the potential moderators of the effect of behavioral treatment. This suggests that participants receiving the BASC treatment with an income level of \$35,001–50,000 or identifying as Non-Hispanic White may experience an additional increase in their odds of smoking cessation. Conversely, exclusive mentholated cigarette users undergoing the BASC treatment might experience an additional decrease in their odds of abstinence.
+
+The model also has several interaction terms with the indicator of varenicline treatment which identify potential moderators for the pharmacological treatment on the EOT abstinence for people with MDD. Specifically, age, cigarette reward value (`crv_total_pq1`), education level (high school graduate or GED), race (Hispanic & Mixed Race), and sex serve as potential moderators. These interactions suggest that the effectiveness of varenicline may vary depending on these baseline characteristics, highlighting the nuanced ipact of pharmacological treatment across different demographic and behavioral profiles.
 
 ```{r}
 bootstrap_summary <- read.csv("Bootstrap_Results/summary_results.csv")
@@ -959,33 +1080,37 @@ bootstrap_summary %>%
   kable_styling(font_size = 7, latex_options = c("repeat_header", "HOLD_position", "scale_down"))
 ```
 
-```{r}
-# Read in the images
+In comparison, the bootstrapped coefficient results in `Table 6` provide additional insights into predictor stability. Variables like hedonsum_n_pq1 and readiness, which exhibited limited significance in the original analysis, are dropped from the bootstrapped results, reflecting their minimal contribution. Conversely, new significant interactions emerge, such as between behavioral treatment and Anhedonia(`shaps_score_pq1`) and the indicator of whether taking antidepressant medication (`antidepmed`), both showing positive coefficient estimates. The previously observed significant interaction between behavioral treatment and sex is no longer present. Additionally, most variables exhibit confidence intervals that do not contain zero, suggesting they consistently demonstrate an effect across bootstrap iterations. However, the interaction term between varenicline and the race variable has a confidence interval that includes zero, indicating that its effect may not be as robust or consistent as the others.
+
+```{r, out.width = "80%", fig.align = "center", fig.height = 3}
+# Read in the bootstrap ROC
 bootstrap_roc_image <- image_read("BootStrap_Results/roc_curve.png")
-bootstrap_calibration_image <- image_read("BootStrap_Results/calibration_plot.png")
-
-grid.arrange(rasterGrob(bootstrap_roc_image), rasterGrob(bootstrap_calibration_image),ncol = 2)
-grid.text("Bootstrap Lasso Validation", x = 0.5, y = 0.85, gp = gpar(fontsize = 12))
-
+bootstrap_roc_image
 ```
+
+```{r, out.width = "90%", fig.height = 3, fig.align = "center"}
+# Read in the bootstrap calibration
+bootstrap_calibration_image <- image_read("BootStrap_Results/calibration_plot.png")
+bootstrap_calibration_image
+```
+We performed model evaluation using the ROC and calibration plots across the bootstrapped training and testing sets, as presented in `Figure 8` and `Figure 9`. The train AUC is 0.814, and the test AUC is 0.807, indicating strong predictive performance of the model. The close proximity of these AUC values between the train and test sets demonstrates that the model generalizes well, as it exhibits similar performance on both datasets. Moreover, the calibration curves in both sets generally align with the ideal line, with some deviations at higher predicted probabilities. There is no significant differences in calibration are observed between the training and testing sets, further supporting the model's robustness and reliability.
+
 # Discussion
 
-Collaborating with the study of smoking cessation for people with MDD led by Dr. George Papandonatos, this study aims to further investigate potential moderators of behavioral treatment (BASC vs. ST) on the EOT abstinence for this group of people and dedicates to identify baseline characteristics as predictors of abstinence, controlling for behavioral and pharmacotherapy treatment. Lasso regression is chosen to perform variable selection that helps to focus on the most influential baseline characteristics and their interaction terms, balancing predictivity with interpretability. 
+Collaborating with the study of smoking cessation for people with MDD led by Dr. George Papandonatos, this study aims to further investigate potential moderators of behavioral treatment (BASC vs. ST) on the EOT abstinence for this group of people and dedicates to identify baseline characteristics as predictors of abstinence, controlling for behavioral and pharmacotherapy treatment. Lasso regression is chosen to perform variable selection that helps to focus on the most influential baseline characteristics and their interaction terms, balancing predictivity with interpretability. In addition, we perform a bootstrap approach aiming to provide a more robust and reliable analysis.
 
-Control for treatment and other factors, as predictors, higher nicotine dependence (higher FTCD score), higher pleasurable events scale score, and current MDD status both associate with lower likelihood of abstinence. Conversely, having faster nicotine metabolism (higher NMR in log scale) was associated with higher odds of abstinence, adjusting for treatment and other factors.
+Control for treatment and other factors, as predictors, higher nicotine dependence (higher FTCD score), higher and current MDD status both associate with lower likelihood of abstinence. Conversely, having faster nicotine metabolism (higher NMR in log scale) and identifying as Non-Hispanic White were associated with higher odds of abstinence, adjusting for treatment and other factors.
 
-Additionally, race emerged as both a predictor and moderator, with Non-Hispanic White participants showing higher odds of abstinence and a greater benefit from BASC compared to other racial groups. Menthol cigarette use and income level also moderated the effects of BASC, with menthol users experiencing lower abstinence odds and individuals with incomes between \$35,001 and \$50,000 benefiting more from BASC. Furthermore, significant interaction terms with varenicline suggest that the efficacy of pharmacotherapy varies by factors like cigarette reward value, education, race, sex, and age. 
-
-The model evaluation using ROC and calibration plots reveals our model's strong discriminative power but raises slight concern regarding calibration on the test set which needs further investigation.
+Additionally, FTCD score emerged as both a predictor and moderator, with participants with higher nicotine dependence score showing lower odds of abstinence and experiencing an additional reduce from BASC. Menthol cigarette use and income level also moderated the effects of BASC, with menthol users experiencing lower abstinence odds and individuals with incomes more than \$70,000 benefiting more from BASC. Furthermore, significant interaction terms with varenicline suggest that the efficacy of pharmacotherapy varies by factors like cigarette reward value, education, race, and age. The model evaluation using ROC and calibration plots reveals our model's strong discriminative power and exhibits well-calibrated results.
 
 As noted in the original paper, a limitation of this study is the low adherence to both behavioral treatment and pharmacotherapy, particular in the BASC-only group. The use of an ITT approach under this scenario might lead to an underestimation of treatment effects due to low adherence. An additional limitation of our analysis is that, although our sample provides a diverse phase of patients with MDD, certain levels within some categorical variables have limited sample sizes. For example, as shown in `Table 3`, only one observation falls within the "Grade school" category for education. This limited representation may reduce the statistical power and limit the generalizability of our study. 
 
-Further research could explore strategies to enhance engagement and adherence and expand data collection to achieve more balanced representation of those underrepresented groups to improve the accuracy and generalizability of our model. Additionally, a future direction would be to apply a multilevel modeling approach which allows for the analysis of time-varying and group-level predictors, such as provider expertise or site-specific support. This method would allow us to assess how these factors interact with individual characteristics to impact abstinence outcome.
+Further research could explore strategies to enhance engagement and adherence and expand data collection to achieve more balanced representation of those underrepresented groups to improve the accuracy and generalizability of our model. Additionally, a future direction would be to apply a multilevel modeling approach which allows for the analysis of time-varying and group-level predictors, such as provider expertise or site-specific support. This method would allow us to assess how these factors interact with individual characteristics to impact abstinence outcome. Moreover, due to computational limitation and convergence issue, our analysis only focused on Lasso regression and we performed the bootstrap approach with only 200 iterations. Further researches using relaxed lasso or L0 + L2 penalty with more bootstrap iterations are recommended.
 
 \newpage
 
 ```{r ref.label = knitr::all_labels()}
-#| echo: false
+#| echo: true
 #| eval: false
 ```
 
