@@ -24,9 +24,11 @@ To analyze the impact of behavioral treatment on end-of-treatment abstinence and
  significant interaction terms with varenicline suggest that the efficacy of pharmacotherapy varies by factors
  like cigarette reward value, education, race, and age. The model evaluation using ROC and calibration plots
  reveals our model’s strong discriminative power and exhibits well-calibrated results.
+
 ```{r, echo = FALSE}
+library(knitr)
 data <- read.csv("Bootstrap_Results/summary_results.csv")
-data
+kable(data, format = "markdown")
 ```
 
 
