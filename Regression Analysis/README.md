@@ -25,6 +25,8 @@ To analyze the impact of behavioral treatment on end-of-treatment abstinence and
  like cigarette reward value, education, race, and age. The model evaluation using ROC and calibration plots
  reveals our model’s strong discriminative power and exhibits well-calibrated results.
 
+ data <- read.csv("Bootstrap_Results/summary_results.csv")
+
 ### Files
 - `MDD Smoking Cessation Regression Analysis.Rmd`: The Rmarkdown file of this Regression Analysis report, containing codes and analysis text.
 - `MDD Smoking Cessation Regression Analysis.pdf`: The pdf file of this Exploratory Data Analysis report, including the analysis text, code results, and appendix.
